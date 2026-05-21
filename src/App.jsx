@@ -8,6 +8,7 @@ import Game from './Game';
 import GameBot from './GameBot';
 import Tutorial from './Tutorial';
 import Ranking from './Ranking';
+import Coach from './Coach';
 import BottomNav from './components/BottomNav';
 import './App.css';
 
@@ -68,6 +69,10 @@ function App() {
           <Route 
             path="/ranking" 
             element={user ? <Ranking /> : <Navigate to="/" />} 
+          />
+          <Route 
+            path="/coach" 
+            element={user ? <Coach user={user} /> : <Navigate to="/" />} 
           />
         </Routes>
       </AppLayout>

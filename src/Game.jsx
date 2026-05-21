@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { db } from './firebase';
-import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { ArrowLeft, Copy, Check, X } from 'lucide-react';
@@ -12,6 +12,7 @@ export default function Game({ user }) {
   const [game, setGame] = useState(new Chess());
   const [gameData, setGameData] = useState(null);
   const [playerColor, setPlayerColor] = useState(null); // 'white', 'black', or null (spectator)
+  const [optionSquares, setOptionSquares] = useState({});
   const [copied, setCopied] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
 
@@ -59,6 +60,44 @@ export default function Game({ user }) {
     return () => unsubscribe();
   }, [gameId, user, navigate]);
 
+  function getMoveOptions(square) {
+    const moves = game.moves({
+      square,
+      verbose: true
+    });
+    
+    if (moves.length === 0) {
+      setOptionSquares({});
+      return;
+    }
+
+    const newSquares = {};
+    moves.map((move) => {
+      newSquares[move.to] = {
+        background:
+          game.get(move.to) && game.get(move.to).color !== game.get(square).color
+            ? 'radial-gradient(circle, rgba(0,0,0,.1) 85%, transparent 85%)'
+            : 'radial-gradient(circle, rgba(0,0,0,.1) 25%, transparent 25%)',
+        borderRadius: '50%'
+      };
+      return move;
+    });
+    newSquares[square] = {
+      background: 'rgba(255, 255, 0, 0.4)'
+    };
+    setOptionSquares(newSquares);
+  }
+
+  function onSquareClick(square) {
+    if (game.turn() !== (playerColor === 'white' ? 'w' : 'b')) return;
+    getMoveOptions(square);
+  }
+
+  function onPieceDragBegin(piece, sourceSquare) {
+    if (game.turn() !== (playerColor === 'white' ? 'w' : 'b')) return;
+    getMoveOptions(sourceSquare);
+  }
+
   const onDrop = useCallback(
     async (sourceSquare, targetSquare) => {
       if (playerColor === 'spectator') {
@@ -70,63 +109,39 @@ export default function Game({ user }) {
         return false;
       }
       
-      // Check if it's player's turn
       const turn = game.turn() === 'w' ? 'white' : 'black';
       if (turn !== playerColor) {
         showToast("Não é a sua vez! Aguarde o oponente jogar.");
         return false;
       }
 
+      setOptionSquares({});
       const gameCopy = new Chess(game.fen());
       
       const handleInvalidMove = () => {
          const piece = gameCopy.get(sourceSquare);
-         let msg = "Lance inválido! Verifique as regras de movimento.";
+         let msg = "Lance inválido!";
          if (piece) {
-            const isCheck = typeof gameCopy.in_check === 'function' ? gameCopy.in_check() : (typeof gameCopy.isCheck === 'function' ? gameCopy.isCheck() : false);
-            
-            if (isCheck) {
-               msg = `Seu Rei está em XEQUE! O seu lance obrigatoriamente precisa protegê-lo (fugindo, defendendo ou capturando a ameaça).`;
-            } else {
-               const sFile = sourceSquare.charCodeAt(0);
-               const sRank = parseInt(sourceSquare[1]);
-               const tFile = targetSquare.charCodeAt(0);
-               const tRank = parseInt(targetSquare[1]);
-               
-               if (piece.type === 'p') {
-                   if ((piece.color === 'w' && sRank > tRank) || (piece.color === 'b' && sRank < tRank)) {
-                       msg = "O Peão nunca pode andar para trás!";
-                   } else if (sFile !== tFile) {
-                       msg = "O Peão só pode andar na diagonal se for para capturar uma peça adversária!";
-                   } else if (Math.abs(sRank - tRank) > 2) {
-                       msg = "Você tentou avançar muitas casas! O Peão só pode andar 2 casas no primeiro movimento, e depois apenas 1 por vez.";
-                   } else if (Math.abs(sRank - tRank) === 2 && ((piece.color === 'w' && sRank !== 2) || (piece.color === 'b' && sRank !== 7))) {
-                       msg = "O Peão só pode andar 2 casas se estiver na sua posição inicial!";
-                   } else {
-                       msg = "A casa à frente do Peão parece estar bloqueada por outra peça.";
-                   }
-               } else if (piece.type === 'n') {
-                   msg = "Movimento inválido. O Cavalo se move obrigatoriamente em 'L' (2 casas numa direção e 1 noutra).";
-               } else if (piece.type === 'b') {
-                   msg = "Movimento inválido. O Bispo anda apenas nas diagonais e não pula outras peças.";
-               } else if (piece.type === 'r') {
-                   msg = "Movimento inválido. A Torre anda apenas em linhas retas (vertical ou horizontal) e não pula peças.";
-               } else if (piece.type === 'q') {
-                   msg = "Movimento inválido. A Rainha anda em retas ou diagonais, mas não pula outras peças.";
-               } else if (piece.type === 'k') {
-                   msg = "Movimento inválido. O Rei anda apenas 1 casa por vez e nunca para uma casa que esteja sendo atacada.";
-               }
+            try {
+               addDoc(collection(db, 'mistakes'), {
+                  userId: user.uid,
+                  piece: piece.type,
+                  details: msg,
+                  timestamp: serverTimestamp()
+               });
+            } catch (err) {
+               console.error("Erro ao gravar erro", err);
             }
          }
          showToast(msg);
-         return false; // illegal move
+         return false;
       };
 
       try {
         const move = gameCopy.move({
           from: sourceSquare,
           to: targetSquare,
-          promotion: 'q', // always promote to queen for simplicity in mobile
+          promotion: 'q',
         });
 
         if (move === null) {
@@ -135,7 +150,6 @@ export default function Game({ user }) {
 
         setGame(gameCopy);
 
-        // Update Firestore
         const gameRef = doc(db, 'games', gameId);
         await updateDoc(gameRef, {
           fen: gameCopy.fen(),
@@ -147,7 +161,7 @@ export default function Game({ user }) {
         return handleInvalidMove();
       }
     },
-    [game, playerColor, gameId, gameData]
+    [game, playerColor, gameId, gameData, user.uid]
   );
 
   const copyCode = () => {
@@ -167,7 +181,6 @@ export default function Game({ user }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', padding: '16px', maxWidth: '600px', margin: '0 auto', position: 'relative' }}>
       
-      {/* Toast Notification */}
       {toastMsg && (
         <div style={{ position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)', background: 'var(--danger-color)', color: 'white', padding: '12px 24px', borderRadius: '8px', zIndex: 9999, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', width: '90%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
           <span style={{ fontSize: '0.9rem', fontWeight: 'bold', flex: 1, textAlign: 'left' }}>{toastMsg}</span>
@@ -177,7 +190,6 @@ export default function Game({ user }) {
         </div>
       )}
 
-      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', marginTop: '10px' }}>
         <button onClick={() => navigate('/lobby')} className="btn" style={{ padding: '8px' }}>
           <ArrowLeft size={20} />
@@ -189,7 +201,6 @@ export default function Game({ user }) {
         </div>
       </div>
 
-      {/* Opponent Info */}
       <div className="glass-panel" style={{ padding: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-color-lighter)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           O
@@ -202,20 +213,21 @@ export default function Game({ user }) {
         </div>
       </div>
 
-      {/* Board container for responsiveness */}
       <div style={{ width: '100%', aspectRatio: '1 / 1', marginBottom: '16px', boxShadow: 'var(--glass-shadow)', borderRadius: '4px', overflow: 'hidden' }}>
         <Chessboard 
           id="BasicBoard" 
           position={game.fen()} 
           onPieceDrop={onDrop}
           boardOrientation={playerColor === 'black' ? 'black' : 'white'}
+          onPieceDragBegin={onPieceDragBegin}
+          onSquareClick={onSquareClick}
+          customSquareStyles={optionSquares}
           customDarkSquareStyle={{ backgroundColor: '#475569' }}
           customLightSquareStyle={{ backgroundColor: '#cbd5e1' }}
           animationDuration={300}
         />
       </div>
 
-      {/* Player Info */}
       <div className="glass-panel" style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--accent-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
           V

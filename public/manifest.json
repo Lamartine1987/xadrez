@@ -1,0 +1,21 @@
+{
+  "name": "Treinador Xadrez IA",
+  "short_name": "Xadrez IA",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "description": "Seu aplicativo de xadrez imersivo com Inteligência Artificial.",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

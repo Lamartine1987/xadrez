@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { db } from './firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { Chessboard } from 'react-chessboard';
@@ -763,8 +764,33 @@ const startHereLessons = [
 ];
 
 export default function Tutorial({ user }) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [category, setCategory] = useState('start');
   const [currentLesson, setCurrentLesson] = useState(0);
+
+  useEffect(() => {
+    if (location.state && location.state.activeCategory) {
+       // Mapeamento do nome sugerido pela IA para o ID da categoria
+       const mapping = {
+          "Comece por Aqui": "start",
+          "O Tabuleiro": "basic",
+          "Treinamento Base": "important",
+          "Padrões de Xeque-Mate": "mating",
+          "Táticas Essenciais": "advanced",
+          "Finais Básicos": "endgame",
+          "Aberturas com 1.e4": "opening",
+          "Aberturas com 1.d4": "d4",
+          "Conceitos avançados": "concepts",
+          "Elementos Psicológicos e avançados": "psych",
+          "As 10 coisas para se aprender primeiro": "start"
+       };
+       const mapped = mapping[location.state.activeCategory];
+       if (mapped) {
+           setCategory(mapped);
+       }
+    }
+  }, [location.state]);
 
   const lessons = category === 'start' ? startHereLessons : category === 'basic' ? basicLessons : category === 'advanced' ? advancedLessons : category === 'important' ? importantLessons : category === 'mating' ? matingPatterns : category === 'positional' ? positionalLessons : category === 'endgame' ? endgameLessons : category === 'd4' ? d4Lessons : category === 'concepts' ? advancedConceptsLessons : category === 'psych' ? psychLessons : openingLessons;
   const lesson = lessons[currentLesson] || startHereLessons[0];

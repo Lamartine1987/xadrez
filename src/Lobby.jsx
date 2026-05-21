@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db, auth } from './firebase';
 import { collection, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
-import { Plus, LogOut, ArrowRight, Bot, BookOpen, Trophy, Star } from 'lucide-react';
+import { Plus, LogOut, ArrowRight, Bot, BookOpen, Trophy, Star, Brain } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 
 export default function Lobby({ user }) {
@@ -141,9 +141,15 @@ export default function Lobby({ user }) {
           </button>
 
           {/* Tutorial */}
-          <button onClick={() => navigate('/tutorial')} className="btn" style={{ gridColumn: '1 / -1', background: 'var(--bg-color-lighter)', border: '1px solid var(--glass-border)', padding: '15px', gap: '10px', color: 'var(--text-main)', boxShadow: 'none', justifyContent: 'center' }}>
-            <BookOpen size={20} color="var(--accent-color)" />
-            Como Jogar (Tutorial Animado)
+          <button onClick={() => navigate('/tutorial')} className="btn" style={{ background: 'var(--bg-color-lighter)', border: '1px solid var(--glass-border)', flexDirection: 'column', padding: '20px', gap: '10px', color: 'var(--text-main)', boxShadow: 'none' }}>
+            <BookOpen size={32} color="var(--accent-color)" />
+            Como Jogar
+          </button>
+          
+          {/* AI Coach */}
+          <button onClick={() => navigate('/coach')} className="btn" style={{ gridColumn: '1 / -1', background: 'linear-gradient(45deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2))', border: '1px solid #8b5cf6', padding: '15px', gap: '10px', color: 'var(--text-main)', justifyContent: 'center' }}>
+            <Brain size={24} color="#a78bfa" />
+            Meu Treinador IA
           </button>
 
         </div>

@@ -4,7 +4,7 @@ import { db } from './firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
-import { ArrowLeft, Bot, RefreshCw, X } from 'lucide-react';
+import { ArrowLeft, Bot, RefreshCw, X, Brain } from 'lucide-react';
 
 export default function GameBot({ user }) {
   const navigate = useNavigate();
@@ -13,6 +13,8 @@ export default function GameBot({ user }) {
   const [isBotThinking, setIsBotThinking] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [optionSquares, setOptionSquares] = useState({});
+  const [coachMessage, setCoachMessage] = useState("Vamos começar! O Robô está pronto para a batalha.");
 
   const showToast = (msg) => {
     setToastMsg(msg);
@@ -52,6 +54,13 @@ export default function GameBot({ user }) {
               setGame(g => {
                 const gameCopy = new Chess(g.fen());
                 gameCopy.move({ from, to, promotion });
+                if (gameCopy.inCheck()) {
+                  setCoachMessage("Cuidado! Seu Rei está em xeque.");
+                } else if (gameCopy.isGameOver()) {
+                  setCoachMessage("Fim de jogo!");
+                } else {
+                  setCoachMessage("Sua vez de jogar.");
+                }
                 return gameCopy;
               });
               setIsBotThinking(false);
@@ -158,20 +167,49 @@ export default function GameBot({ user }) {
     }
   };
 
-  const onDrop = (sourceSquare, targetSquare) => {
+  function getMoveOptions(square) {
+    const moves = game.moves({ square, verbose: true });
+    if (moves.length === 0) {
+      setOptionSquares({});
+      return;
+    }
+    const newSquares = {};
+    moves.map((move) => {
+      newSquares[move.to] = {
+        background: game.get(move.to) && game.get(move.to).color !== game.get(square).color
+            ? 'radial-gradient(circle, rgba(0,0,0,.1) 85%, transparent 85%)'
+            : 'radial-gradient(circle, rgba(0,0,0,.1) 25%, transparent 25%)',
+        borderRadius: '50%'
+      };
+      return move;
+    });
+    newSquares[square] = { background: 'rgba(255, 255, 0, 0.4)' };
+    setOptionSquares(newSquares);
+  }
+
+  function onSquareClick(square) { 
+    if (game.turn() === 'w') getMoveOptions(square); 
+  }
+
+  function onPieceDragBegin(piece, sourceSquare) { 
+    if (game.turn() === 'w') getMoveOptions(sourceSquare); 
+  }
+
+  const onDrop = (sourceSquare, targetSquare, piece) => {
     if (game.turn() === 'b') {
-      showToast("Não é sua vez! O robô joga com as pretas.");
+      setCoachMessage("Não é sua vez! O robô joga com as pretas.");
       return false;
     }
     if (isBotThinking) {
       showToast("O robô ainda está pensando no lance dele.");
       return false;
     }
-    if (game.isGameOver()) {
-      showToast("A partida já terminou!");
+    if (gameOver) {
+      setCoachMessage("A partida já terminou!");
       return false;
     }
 
+    setOptionSquares({});
     const gameCopy = new Chess(game.fen());
     
     const handleInvalidMove = () => {
@@ -212,8 +250,19 @@ export default function GameBot({ user }) {
                    msg = "Movimento inválido. O Rei anda apenas 1 casa por vez e nunca para uma casa que esteja sendo atacada.";
                }
             }
+            try {
+               addDoc(collection(db, 'mistakes'), {
+                  userId: user.uid,
+                  piece: piece.type,
+                  errorType: "invalid_move",
+                  message: msg,
+                  timestamp: serverTimestamp()
+               });
+            } catch (err) {
+               console.error("Erro ao gravar erro", err);
+            }
          }
-         showToast(msg);
+         setCoachMessage(msg); // Treinador narra o erro
          return false;
     };
 
@@ -227,6 +276,7 @@ export default function GameBot({ user }) {
          return handleInvalidMove();
       }
       setGame(gameCopy);
+      setCoachMessage("Boa jogada!");
       return true;
     } catch (e) {
       return handleInvalidMove();
@@ -277,9 +327,20 @@ export default function GameBot({ user }) {
         <button onClick={() => navigate('/lobby')} className="btn" style={{ padding: '8px' }}>
           <ArrowLeft size={20} />
         </button>
-        <button onClick={() => { setGame(new Chess()); setGameOver(false); setIsBotThinking(false); }} className="btn" style={{ padding: '8px 16px', background: 'var(--bg-color-lighter)' }}>
+        <button onClick={() => { setGame(new Chess()); setGameOver(false); setIsBotThinking(false); setCoachMessage("Partida reiniciada!"); }} className="btn" style={{ padding: '8px 16px', background: 'var(--bg-color-lighter)' }}>
           <RefreshCw size={16} /> Reiniciar
         </button>
+      </div>
+
+      {/* O Treinador IA Vivo */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: '16px', gap: '12px' }}>
+         <div style={{ position: 'relative', width: '50px', height: '50px', background: 'var(--accent-color)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', zIndex: 2 }}>
+            <Brain size={28} color="white" />
+         </div>
+         <div style={{ background: 'white', color: '#1e293b', padding: '12px 16px', borderRadius: '16px', borderBottomLeftRadius: '4px', flex: 1, fontSize: '0.9rem', fontWeight: '500', boxShadow: '0 4px 15px rgba(0,0,0,0.15)', position: 'relative' }}>
+            {coachMessage}
+            <div style={{ position: 'absolute', left: '-8px', bottom: '10px', width: '0', height: '0', borderTop: '8px solid transparent', borderRight: '12px solid white', borderBottom: '8px solid transparent' }}></div>
+         </div>
       </div>
 
       <div className="glass-panel" style={{ padding: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -302,9 +363,13 @@ export default function GameBot({ user }) {
 
       <div style={{ width: '100%', aspectRatio: '1 / 1', marginBottom: '16px', boxShadow: 'var(--glass-shadow)', borderRadius: '4px', overflow: 'hidden' }}>
         <Chessboard 
+          id="BotBoard" 
           position={game.fen()} 
           boardWidth={boardWidth}
           onPieceDrop={onDrop}
+          onPieceDragBegin={onPieceDragBegin}
+          onSquareClick={onSquareClick}
+          customSquareStyles={optionSquares}
           boardOrientation="white"
           customDarkSquareStyle={{ backgroundColor: '#475569' }}
           customLightSquareStyle={{ backgroundColor: '#cbd5e1' }}
