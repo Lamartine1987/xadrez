@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from './firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { ArrowLeft, Brain, Sparkles, BookOpen, ChevronRight, Activity } from 'lucide-react';
 
 export default function Coach({ user }) {
@@ -46,14 +46,57 @@ export default function Coach({ user }) {
     setErrorMsg('');
     
     try {
-      const functions = getFunctions();
-      const generateAnalysis = httpsCallable(functions, 'generateCoachAnalysis');
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error("Chave da API Gemini não encontrada.");
+      }
       
-      const result = await generateAnalysis({ mistakes });
-      setAnalysisResult(result.data);
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+      const prompt = `
+Você é o "Treinador IA", um mestre de xadrez amigável e encorajador focado em ajudar iniciantes.
+Aqui está a lista de erros recentes que o jogador cometeu em nosso aplicativo de xadrez:
+${JSON.stringify(mistakes)}
+
+Sua tarefa:
+1. Escreva uma análise curta e amigável (2 a 3 parágrafos curtos) em português do Brasil.
+2. Seja encorajador, não seja muito técnico.
+3. Identifique o padrão principal de erro (ex: problema com movimento do cavalo, esquecer de tirar o rei do xeque, etc).
+4. No final, retorne um objeto JSON exatamente com esta estrutura:
+{
+  "analysis": "Seu texto amigável aqui...",
+  "recommendedCategories": ["nome da categoria 1", "nome da categoria 2"]
+}
+
+Categorias disponíveis no simulador para você recomendar (escolha no máximo 2 que façam sentido para os erros):
+- "O Tabuleiro"
+- "Treinamento Base"
+- "Padrões de Xeque-Mate"
+- "Táticas Essenciais"
+- "Finais Básicos"
+- "Aberturas com 1.e4"
+- "Aberturas com 1.d4"
+- "Conceitos avançados"
+- "Elementos Psicológicos e avançados"
+- "As 10 coisas para se aprender primeiro"
+
+Lembre-se: A saída deve ser ÚNICA E EXCLUSIVAMENTE o objeto JSON válido, sem \`\`\`json ou marcações markdown, para que eu possa fazer parse.
+`;
+
+      const result = await model.generateContent(prompt);
+      let text = result.response.text().trim();
+      
+      // Limpar marcações markdown caso a IA as inclua acidentalmente
+      if (text.startsWith('\`\`\`json')) text = text.substring(7);
+      if (text.startsWith('\`\`\`')) text = text.substring(3);
+      if (text.endsWith('\`\`\`')) text = text.substring(0, text.length - 3);
+      
+      const parsedData = JSON.parse(text.trim());
+      setAnalysisResult(parsedData);
       
     } catch (error) {
-      console.error("Erro ao processar análise no Firebase:", error);
+      console.error("Erro ao processar análise da IA no frontend:", error);
       setErrorMsg("Erro ao processar análise. Tente novamente mais tarde.");
     } finally {
       setAnalyzing(false);

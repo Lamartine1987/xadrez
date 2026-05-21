@@ -1,7 +1,7 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-exports.generateCoachAnalysis = onCall({ region: "us-central1", cors: true }, async (request) => {
+exports.generateCoachAnalysis = onCall({ region: "us-central1", cors: [/vercel\\.app$/, /localhost/] }, async (request) => {
   // Verifica se o usuário está logado (Segurança)
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'O usuário precisa estar logado para acessar a IA.');
