@@ -105,7 +105,7 @@ export default function Game({ user }) {
   const myName = playerColor === 'white' ? gameData.players.whiteName : (gameData.players.blackName || user.displayName);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
       
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', marginTop: '10px' }}>
