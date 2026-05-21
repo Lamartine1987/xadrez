@@ -2,13 +2,17 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db, auth } from './firebase';
 import { collection, doc, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
-import { Plus, LogOut, ArrowRight, Bot, BookOpen, Trophy, Star, Brain } from 'lucide-react';
 import { signOut } from 'firebase/auth';
+import { useBoardTheme } from './hooks/useBoardTheme';
+import { Chessboard } from 'react-chessboard';
+import { Plus, LogOut, ArrowRight, Bot, BookOpen, Trophy, Star, Brain, Palette, X } from 'lucide-react';
 
 export default function Lobby({ user }) {
   const [roomCode, setRoomCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [stars, setStars] = useState(0);
+  const [showSettings, setShowSettings] = useState(false);
+  const { themeId, setThemeId, pieceTheme, setPieceTheme, availableThemes, availablePieceThemes, themeStyles } = useBoardTheme();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -147,13 +151,82 @@ export default function Lobby({ user }) {
           </button>
           
           {/* AI Coach */}
-          <button onClick={() => navigate('/coach')} className="btn" style={{ gridColumn: '1 / -1', background: 'linear-gradient(45deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2))', border: '1px solid #8b5cf6', padding: '15px', gap: '10px', color: 'var(--text-main)', justifyContent: 'center' }}>
+          <button onClick={() => navigate('/coach')} className="btn" style={{ background: 'linear-gradient(45deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2))', border: '1px solid #8b5cf6', padding: '15px', gap: '10px', color: 'var(--text-main)', justifyContent: 'center' }}>
             <Brain size={24} color="#a78bfa" />
             Meu Treinador IA
           </button>
 
+          {/* Aparência */}
+          <button onClick={() => setShowSettings(true)} className="btn" style={{ background: 'var(--bg-color-lighter)', border: '1px solid var(--glass-border)', padding: '15px', gap: '10px', color: 'var(--text-main)', justifyContent: 'center' }}>
+            <Palette size={24} color="#f472b6" />
+            Aparência
+          </button>
         </div>
       </div>
+
+      {/* Modal de Aparência */}
+      {showSettings && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '400px', padding: '24px', position: 'relative' }}>
+            <button onClick={() => setShowSettings(false)} style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}>
+              <X size={24} />
+            </button>
+            <h2 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+               <Palette /> Personalizar
+            </h2>
+
+            <div style={{ width: '100%', maxWidth: '200px', margin: '0 auto 20px', borderRadius: '4px', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
+               <Chessboard 
+                 id="PreviewBoard" 
+                 position="start" 
+                 arePiecesDraggable={false}
+                 {...themeStyles} 
+               />
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+               {availableThemes.map(theme => (
+                  <button 
+                     key={theme.id}
+                     onClick={() => setThemeId(theme.id)}
+                     className="btn" 
+                     style={{ 
+                        padding: '12px', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between',
+                        background: themeId === theme.id ? 'var(--accent-color)' : 'var(--bg-color-lighter)' 
+                     }}
+                  >
+                     <span>{theme.name}</span>
+                     <div style={{ display: 'flex', width: '40px', height: '20px', borderRadius: '4px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)' }}>
+                        <div style={{ flex: 1, background: theme.light }}></div>
+                        <div style={{ flex: 1, background: theme.dark }}></div>
+                     </div>
+                  </button>
+               ))}
+            </div>
+
+            <h3 style={{ fontSize: '1rem', marginBottom: '15px', color: '#94a3b8' }}>Estilo das Peças</h3>
+            <select 
+               value={pieceTheme} 
+               onChange={(e) => setPieceTheme(e.target.value)}
+               className="input-modern"
+               style={{ width: '100%', marginBottom: '10px' }}
+            >
+               {availablePieceThemes.map(theme => (
+                  <option key={theme.id} value={theme.id} style={{ background: '#1e293b', color: 'white' }}>
+                     {theme.name}
+                  </option>
+               ))}
+            </select>
+            
+            <button className="btn" onClick={() => setShowSettings(false)} style={{ width: '100%', marginTop: '24px' }}>
+               Salvar e Fechar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

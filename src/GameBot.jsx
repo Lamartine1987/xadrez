@@ -4,7 +4,8 @@ import { db } from './firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
-import { ArrowLeft, Bot, RefreshCw, X, Brain } from 'lucide-react';
+import { useBoardTheme } from './hooks/useBoardTheme';
+import { ArrowLeft, Bot, RefreshCw, X, Brain, Flag, Undo2, Trophy, Star } from 'lucide-react';
 
 export default function GameBot({ user }) {
   const navigate = useNavigate();
@@ -12,24 +13,17 @@ export default function GameBot({ user }) {
   const [difficulty, setDifficulty] = useState(0); // 0 = not selected
   const [isBotThinking, setIsBotThinking] = useState(false);
   const [gameOver, setGameOver] = useState(false);
+  const [gameOverData, setGameOverData] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
   const [optionSquares, setOptionSquares] = useState({});
+  const { themeStyles } = useBoardTheme();
   const [coachMessage, setCoachMessage] = useState("Vamos começar! O Robô está pronto para a batalha.");
 
   const showToast = (msg) => {
     setToastMsg(msg);
   };
-  const [boardWidth, setBoardWidth] = useState(300);
   const engineRef = useRef(null);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setBoardWidth(Math.min(window.innerWidth - 32, 568));
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const historyEndRef = useRef(null);
 
   // Initialize Stockfish worker
   useEffect(() => {
@@ -129,6 +123,12 @@ export default function GameBot({ user }) {
     }
   }, [game]);
 
+  useEffect(() => {
+    if (historyEndRef.current) {
+      historyEndRef.current.scrollTop = historyEndRef.current.scrollHeight;
+    }
+  }, [game.history().length]);
+
   const handleGameOver = async () => {
     let resultText = "Empate!";
     let pointsChange = 0;
@@ -136,16 +136,18 @@ export default function GameBot({ user }) {
 
     if (game.isCheckmate()) {
       if (game.turn() === 'b') {
-        resultText = "Você venceu!";
+        resultText = "Você venceu o Robô!";
         pointsChange = 15 * difficulty; // more points for harder bots
         starsGained = difficulty * 2; // stars = difficulty * 2
       } else {
-        resultText = "O Robô venceu!";
+        resultText = "Xeque-Mate! O Robô venceu.";
         pointsChange = -5 * difficulty;
       }
+    } else if (game.isDraw() || game.isStalemate() || game.isThreefoldRepetition() || game.isInsufficientMaterial()) {
+      resultText = "Empate!";
     }
 
-    alert(`Fim de jogo: ${resultText}\nVocê ganhou ${pointsChange} pontos de Elo e ${starsGained} Estrelas!`);
+    setGameOverData({ resultText, pointsChange, starsGained });
 
     if ((pointsChange !== 0 || starsGained > 0) && user) {
       try {
@@ -311,78 +313,175 @@ export default function GameBot({ user }) {
     );
   }
 
+  const history = game.history();
+  const movePairs = [];
+  for (let i = 0; i < history.length; i += 2) {
+    movePairs.push({
+      white: history[i],
+      black: history[i + 1] || ''
+    });
+  }
+
+  const handleUndo = () => {
+    if (gameOver) return;
+    setGame(g => {
+       const gameCopy = new Chess(g.fen());
+       gameCopy.undo(); // undo bot move
+       gameCopy.undo(); // undo player move
+       return gameCopy;
+    });
+    setCoachMessage("Lance desfeito. Tente outra estratégia!");
+  };
+
+  const closeGameOverModal = () => {
+    setGameOverData(null);
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', padding: '16px', maxWidth: '600px', margin: '0 auto', position: 'relative' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', padding: '16px', paddingBottom: '100px' }}>
       
+      {/* Game Over Modal */}
+      {gameOverData && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000 }}>
+          <div className="glass-panel" style={{ background: '#1e293b', maxWidth: '400px', width: '90%', textAlign: 'center', padding: '40px 20px', border: '1px solid var(--accent-color)' }}>
+            <Trophy size={64} color={gameOverData.pointsChange > 0 ? "var(--success-color)" : (gameOverData.pointsChange < 0 ? "var(--danger-color)" : "var(--text-muted)")} style={{ marginBottom: '20px' }} />
+            <h2 style={{ fontSize: '1.8rem', marginBottom: '10px' }}>{gameOverData.resultText}</h2>
+            <p style={{ color: 'var(--text-muted)', marginBottom: '30px', fontSize: '1.1rem' }}>
+              {gameOverData.pointsChange > 0 ? 'Excelente desempenho!' : (gameOverData.pointsChange < 0 ? 'Não desanime, tente novamente!' : 'Uma partida equilibrada.')}
+            </p>
+            
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '30px' }}>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '15px', borderRadius: '8px', minWidth: '100px' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '5px' }}>ELO</div>
+                <div style={{ fontWeight: 'bold', fontSize: '1.4rem', color: gameOverData.pointsChange > 0 ? 'var(--success-color)' : (gameOverData.pointsChange < 0 ? 'var(--danger-color)' : 'white') }}>
+                  {gameOverData.pointsChange > 0 ? '+' : ''}{gameOverData.pointsChange}
+                </div>
+              </div>
+              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '15px', borderRadius: '8px', minWidth: '100px' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '5px' }}>ESTRELAS</div>
+                <div style={{ fontWeight: 'bold', fontSize: '1.4rem', color: 'gold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+                  +{gameOverData.starsGained} <Star size={18} fill="gold" />
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '15px' }}>
+              <button className="btn" onClick={() => { closeGameOverModal(); setGame(new Chess()); setGameOver(false); setIsBotThinking(false); setCoachMessage("Nova partida, vamos lá!"); }} style={{ flex: 1 }}>
+                <RefreshCw size={18} /> Jogar Novamente
+              </button>
+              <button className="btn" onClick={() => navigate('/lobby')} style={{ background: 'rgba(255,255,255,0.1)', flex: 1 }}>
+                <ArrowLeft size={18} /> Menu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toast Notification */}
       {toastMsg && (
-        <div style={{ position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)', background: 'var(--danger-color)', color: 'white', padding: '12px 24px', borderRadius: '8px', zIndex: 9999, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', width: '90%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
+        <div style={{ position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)', background: 'var(--danger-color)', color: 'white', padding: '12px 24px', borderRadius: '8px', zIndex: 9999, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', width: '90%', maxWidth: '400px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
           <span style={{ fontSize: '0.9rem', fontWeight: 'bold', flex: 1, textAlign: 'left' }}>{toastMsg}</span>
           <button onClick={() => setToastMsg('')} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={20} />
           </button>
         </div>
       )}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', marginTop: '10px' }}>
-        <button onClick={() => navigate('/lobby')} className="btn" style={{ padding: '8px' }}>
-          <ArrowLeft size={20} />
-        </button>
-        <button onClick={() => { setGame(new Chess()); setGameOver(false); setIsBotThinking(false); setCoachMessage("Partida reiniciada!"); }} className="btn" style={{ padding: '8px 16px', background: 'var(--bg-color-lighter)' }}>
-          <RefreshCw size={16} /> Reiniciar
-        </button>
-      </div>
 
-      {/* O Treinador IA Vivo */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: '16px', gap: '12px' }}>
-         <div style={{ position: 'relative', width: '50px', height: '50px', background: 'var(--accent-color)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.3)', zIndex: 2 }}>
-            <Brain size={28} color="white" />
-         </div>
-         <div style={{ background: 'white', color: '#1e293b', padding: '12px 16px', borderRadius: '16px', borderBottomLeftRadius: '4px', flex: 1, fontSize: '0.9rem', fontWeight: '500', boxShadow: '0 4px 15px rgba(0,0,0,0.15)', position: 'relative' }}>
-            {coachMessage}
-            <div style={{ position: 'absolute', left: '-8px', bottom: '10px', width: '0', height: '0', borderTop: '8px solid transparent', borderRight: '12px solid white', borderBottom: '8px solid transparent' }}></div>
-         </div>
-      </div>
-
-      <div className="glass-panel" style={{ padding: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--bg-color-lighter)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Bot size={24} color="var(--danger-color)" />
+      <div className="game-layout">
+        {/* Lado Esquerdo: Tabuleiro e Treinador */}
+        <div className="game-board-container">
+          
+          {/* Card Topo (Robô) */}
+          <div style={{ background: '#1e293b', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: '8px', borderTopRightRadius: '8px', borderBottom: '1px solid rgba(0,0,0,0.5)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '4px', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Bot size={24} color="var(--danger-color)" />
+              </div>
+              <div>
+                <div style={{ fontWeight: 'bold' }}>Robô Nível {difficulty}</div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--accent-color)', minHeight: '16px' }}>
+                  {isBotThinking ? 'Pensando...' : ''}
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: '4px 12px', borderRadius: '4px', background: game.turn() === 'b' ? 'var(--accent-color)' : 'rgba(255,255,255,0.1)', color: 'white', fontWeight: 'bold', fontSize: '0.8rem' }}>
+               Pretas
+            </div>
           </div>
-          <div>
-            <div style={{ fontWeight: 'bold' }}>Robô Nível {difficulty}</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--accent-color)', minHeight: '16px' }}>
-              {isBotThinking ? 'Pensando...' : ''}
+
+          {/* Tabuleiro */}
+          <div style={{ width: '100%', aspectRatio: '1 / 1', overflow: 'hidden', background: '#0f172a' }}>
+            <Chessboard 
+              id="BotBoard" 
+              position={game.fen()} 
+              onPieceDrop={onDrop}
+              onPieceDragBegin={onPieceDragBegin}
+              onSquareClick={onSquareClick}
+              customSquareStyles={optionSquares}
+              boardOrientation="white"
+              {...themeStyles}
+              animationDuration={300}
+            />
+          </div>
+
+          {/* Card Base (Jogador) */}
+          <div style={{ background: '#1e293b', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '4px', background: 'var(--accent-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
+                {user.displayName ? user.displayName[0].toUpperCase() : 'V'}
+              </div>
+              <div>
+                <div style={{ fontWeight: 'bold' }}>{user.displayName || user.email.split('@')[0]}</div>
+              </div>
+            </div>
+            <div style={{ padding: '4px 12px', borderRadius: '4px', background: game.turn() === 'w' ? 'white' : 'rgba(255,255,255,0.1)', color: game.turn() === 'w' ? 'black' : 'white', fontWeight: 'bold', fontSize: '0.8rem' }}>
+               Brancas
             </div>
           </div>
         </div>
-        
-        <div style={{ padding: '4px 12px', borderRadius: '20px', background: game.turn() === 'w' ? 'white' : 'black', color: game.turn() === 'w' ? 'black' : 'white', fontWeight: 'bold', border: '2px solid var(--accent-color)' }}>
-           Vez das {game.turn() === 'w' ? 'Brancas' : 'Pretas'}
-        </div>
-      </div>
 
-      <div style={{ width: '100%', aspectRatio: '1 / 1', marginBottom: '16px', boxShadow: 'var(--glass-shadow)', borderRadius: '4px', overflow: 'hidden' }}>
-        <Chessboard 
-          id="BotBoard" 
-          position={game.fen()} 
-          boardWidth={boardWidth}
-          onPieceDrop={onDrop}
-          onPieceDragBegin={onPieceDragBegin}
-          onSquareClick={onSquareClick}
-          customSquareStyles={optionSquares}
-          boardOrientation="white"
-          customDarkSquareStyle={{ backgroundColor: '#475569' }}
-          customLightSquareStyle={{ backgroundColor: '#cbd5e1' }}
-          animationDuration={300}
-        />
-      </div>
+        {/* Lado Direito: Sidebar de Controle */}
+        <div className="game-sidebar">
+          <div className="sidebar-header">
+             <Bot size={20} />
+             <span>Jogar Com Bots</span>
+          </div>
+          
+          <div className="sidebar-content" style={{ padding: '20px', display: 'flex', alignItems: 'flex-start', gap: '15px', background: 'linear-gradient(180deg, #1e293b, #0f172a)' }}>
+             <div style={{ position: 'relative', width: '60px', height: '60px', background: 'var(--accent-color)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '2px solid rgba(255,255,255,0.2)', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
+                <Bot size={36} color="white" />
+             </div>
+             <div style={{ background: 'white', color: '#1e293b', padding: '12px 16px', borderRadius: '16px', borderTopLeftRadius: '4px', flex: 1, fontSize: '0.9rem', fontWeight: '500', position: 'relative', boxShadow: '0 4px 15px rgba(0,0,0,0.15)' }}>
+                <div style={{ fontWeight: 'bold', marginBottom: '4px', color: 'var(--accent-color)' }}>Robô Nível {difficulty}</div>
+                {coachMessage}
+                <div style={{ position: 'absolute', left: '-8px', top: '20px', width: '0', height: '0', borderTop: '8px solid transparent', borderRight: '12px solid white', borderBottom: '8px solid transparent' }}></div>
+             </div>
+          </div>
 
-      <div className="glass-panel" style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--accent-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-          V
-        </div>
-        <div>
-          <div style={{ fontWeight: 'bold' }}>{user.displayName || user.email.split('@')[0]} (Você)</div>
+          <div className="move-history-container" ref={historyEndRef}>
+             {movePairs.length === 0 && (
+               <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>A partida ainda não começou.</div>
+             )}
+             {movePairs.map((pair, index) => (
+               <div key={index} className="move-row">
+                 <div className="move-number">{index + 1}.</div>
+                 <div className="move-white">{pair.white}</div>
+                 <div className="move-black">{pair.black}</div>
+               </div>
+             ))}
+          </div>
+
+          <div className="sidebar-actions">
+             <button className="action-btn" title="Desistir / Menu" onClick={() => navigate('/lobby')}>
+                <Flag size={20} />
+             </button>
+             <button className="action-btn" title="Voltar Lance" onClick={handleUndo}>
+                <Undo2 size={20} />
+             </button>
+             <button className="action-btn" title="Reiniciar" onClick={() => { setGame(new Chess()); setGameOver(false); setIsBotThinking(false); setCoachMessage("Partida reiniciada!"); }}>
+                <RefreshCw size={20} />
+             </button>
+          </div>
         </div>
       </div>
     </div>

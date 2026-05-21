@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { db } from './firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { Chessboard } from 'react-chessboard';
+import { useBoardTheme } from './hooks/useBoardTheme';
 import { Chess } from 'chess.js';
 import { BookOpen, ChevronRight, ChevronLeft, Play, Star, Swords, Crown, Target, Compass, Hourglass, Flag, Shield, Lightbulb, Brain, Rocket } from 'lucide-react';
 
@@ -768,6 +769,7 @@ export default function Tutorial({ user }) {
   const navigate = useNavigate();
   const [category, setCategory] = useState('start');
   const [currentLesson, setCurrentLesson] = useState(0);
+  const { themeStyles } = useBoardTheme();
 
   useEffect(() => {
     if (location.state && location.state.activeCategory) {
@@ -994,8 +996,7 @@ export default function Tutorial({ user }) {
           position={game.fen()} 
           boardOrientation="white"
           animationDuration={300}
-          customDarkSquareStyle={{ backgroundColor: '#475569' }}
-          customLightSquareStyle={{ backgroundColor: '#cbd5e1' }}
+          {...themeStyles}
           onPieceDrop={() => false}
         />
       </div>

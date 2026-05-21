@@ -4,6 +4,7 @@ import { db } from './firebase';
 import { doc, onSnapshot, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
+import { useBoardTheme } from './hooks/useBoardTheme';
 import { ArrowLeft, Copy, Check, X } from 'lucide-react';
 
 export default function Game({ user }) {
@@ -13,6 +14,7 @@ export default function Game({ user }) {
   const [gameData, setGameData] = useState(null);
   const [playerColor, setPlayerColor] = useState(null); // 'white', 'black', or null (spectator)
   const [optionSquares, setOptionSquares] = useState({});
+  const { themeStyles } = useBoardTheme();
   const [copied, setCopied] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
 
@@ -222,8 +224,7 @@ export default function Game({ user }) {
           onPieceDragBegin={onPieceDragBegin}
           onSquareClick={onSquareClick}
           customSquareStyles={optionSquares}
-          customDarkSquareStyle={{ backgroundColor: '#475569' }}
-          customLightSquareStyle={{ backgroundColor: '#cbd5e1' }}
+          {...themeStyles}
           animationDuration={300}
         />
       </div>
