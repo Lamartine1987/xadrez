@@ -63,6 +63,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .btn:hover {
@@ -185,4 +186,62 @@ body {
 
 .nav-item .icon-inactive {
   color: var(--text-muted);
+}
+
+/* Horizontal Scroll Utilities */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Tutorial Layout */
+.tutorial-layout {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  padding: 16px;
+  max-width: 1000px;
+  margin: 0 auto;
+  min-height: 120vh;
+}
+
+.tutorial-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 280px;
+  flex-shrink: 0;
+}
+
+.tutorial-sidebar .btn {
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.tutorial-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: 600px;
+  align-items: stretch;
+}
+
+@media (max-width: 768px) {
+  .tutorial-layout {
+    flex-direction: column;
+  }
+  .tutorial-sidebar {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding-bottom: 10px;
+  }
+  .tutorial-sidebar .btn {
+    justify-content: center;
+    text-align: center;
+  }
 }
