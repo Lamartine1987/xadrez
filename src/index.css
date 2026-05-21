@@ -203,9 +203,11 @@ body {
   flex-direction: row;
   gap: 20px;
   padding: 16px;
+  width: 100%;
   max-width: 1000px;
   margin: 0 auto;
   min-height: 120vh;
+  box-sizing: border-box;
 }
 
 .tutorial-sidebar {
@@ -226,12 +228,15 @@ body {
   display: flex;
   flex-direction: column;
   max-width: 600px;
+  width: 100%;
+  min-width: 0;
   align-items: stretch;
 }
 
 @media (max-width: 768px) {
   .tutorial-layout {
     flex-direction: column;
+    padding: 10px;
   }
   .tutorial-sidebar {
     width: 100%;
