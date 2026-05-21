@@ -4,7 +4,7 @@ import { db } from './firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
-import { ArrowLeft, Bot, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Bot, RefreshCw, X } from 'lucide-react';
 
 export default function GameBot({ user }) {
   const navigate = useNavigate();
@@ -12,7 +12,11 @@ export default function GameBot({ user }) {
   const [difficulty, setDifficulty] = useState(0); // 0 = not selected
   const [isBotThinking, setIsBotThinking] = useState(false);
   const [gameOver, setGameOver] = useState(false);
-  const [debugMsg, setDebugMsg] = useState('');
+  const [toastMsg, setToastMsg] = useState('');
+
+  const showToast = (msg) => {
+    setToastMsg(msg);
+  };
   const [boardWidth, setBoardWidth] = useState(300);
   const engineRef = useRef(null);
 
@@ -155,22 +159,64 @@ export default function GameBot({ user }) {
   };
 
   const onDrop = (sourceSquare, targetSquare) => {
-    setDebugMsg(`Tentando mover de ${sourceSquare} para ${targetSquare}...`);
-    
     if (game.turn() === 'b') {
-      setDebugMsg("Erro: É a vez das pretas (robô).");
+      showToast("Não é sua vez! O robô joga com as pretas.");
       return false;
     }
     if (isBotThinking) {
-      setDebugMsg("Erro: O robô ainda está pensando.");
+      showToast("O robô ainda está pensando no lance dele.");
       return false;
     }
     if (game.isGameOver()) {
-      setDebugMsg("Erro: O jogo já acabou.");
+      showToast("A partida já terminou!");
       return false;
     }
 
     const gameCopy = new Chess(game.fen());
+    
+    const handleInvalidMove = () => {
+         const piece = gameCopy.get(sourceSquare);
+         let msg = "Lance inválido! Verifique as regras de movimento.";
+         if (piece) {
+            const isCheck = typeof gameCopy.in_check === 'function' ? gameCopy.in_check() : (typeof gameCopy.isCheck === 'function' ? gameCopy.isCheck() : false);
+            
+            if (isCheck) {
+               msg = `Seu Rei está em XEQUE! O seu lance obrigatoriamente precisa protegê-lo (fugindo, defendendo ou capturando a ameaça).`;
+            } else {
+               const sFile = sourceSquare.charCodeAt(0);
+               const sRank = parseInt(sourceSquare[1]);
+               const tFile = targetSquare.charCodeAt(0);
+               const tRank = parseInt(targetSquare[1]);
+               
+               if (piece.type === 'p') {
+                   if ((piece.color === 'w' && sRank > tRank) || (piece.color === 'b' && sRank < tRank)) {
+                       msg = "O Peão nunca pode andar para trás!";
+                   } else if (sFile !== tFile) {
+                       msg = "O Peão só pode andar na diagonal se for para capturar uma peça adversária!";
+                   } else if (Math.abs(sRank - tRank) > 2) {
+                       msg = "Você tentou avançar muitas casas! O Peão só pode andar 2 casas no primeiro movimento, e depois apenas 1 por vez.";
+                   } else if (Math.abs(sRank - tRank) === 2 && ((piece.color === 'w' && sRank !== 2) || (piece.color === 'b' && sRank !== 7))) {
+                       msg = "O Peão só pode andar 2 casas se estiver na sua posição inicial!";
+                   } else {
+                       msg = "A casa à frente do Peão parece estar bloqueada por outra peça.";
+                   }
+               } else if (piece.type === 'n') {
+                   msg = "Movimento inválido. O Cavalo se move obrigatoriamente em 'L' (2 casas numa direção e 1 noutra).";
+               } else if (piece.type === 'b') {
+                   msg = "Movimento inválido. O Bispo anda apenas nas diagonais e não pula outras peças.";
+               } else if (piece.type === 'r') {
+                   msg = "Movimento inválido. A Torre anda apenas em linhas retas (vertical ou horizontal) e não pula peças.";
+               } else if (piece.type === 'q') {
+                   msg = "Movimento inválido. A Rainha anda em retas ou diagonais, mas não pula outras peças.";
+               } else if (piece.type === 'k') {
+                   msg = "Movimento inválido. O Rei anda apenas 1 casa por vez e nunca para uma casa que esteja sendo atacada.";
+               }
+            }
+         }
+         showToast(msg);
+         return false;
+    };
+
     try {
       const move = gameCopy.move({
         from: sourceSquare,
@@ -178,15 +224,12 @@ export default function GameBot({ user }) {
         promotion: 'q',
       });
       if (move === null) {
-         setDebugMsg(`Movimento inválido segundo o chess.js! (${sourceSquare}-${targetSquare})`);
-         return false;
+         return handleInvalidMove();
       }
       setGame(gameCopy);
-      setDebugMsg(`Movimento ${sourceSquare}-${targetSquare} aceito!`);
       return true;
     } catch (e) {
-      setDebugMsg(`Exceção do chess.js: ${e.message}`);
-      return false;
+      return handleInvalidMove();
     }
   };
 
@@ -219,7 +262,17 @@ export default function GameBot({ user }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', padding: '16px', maxWidth: '600px', margin: '0 auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', padding: '16px', maxWidth: '600px', margin: '0 auto', position: 'relative' }}>
+      
+      {/* Toast Notification */}
+      {toastMsg && (
+        <div style={{ position: 'absolute', top: '20px', left: '50%', transform: 'translateX(-50%)', background: 'var(--danger-color)', color: 'white', padding: '12px 24px', borderRadius: '8px', zIndex: 9999, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', width: '90%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
+          <span style={{ fontSize: '0.9rem', fontWeight: 'bold', flex: 1, textAlign: 'left' }}>{toastMsg}</span>
+          <button onClick={() => setToastMsg('')} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <X size={20} />
+          </button>
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', marginTop: '10px' }}>
         <button onClick={() => navigate('/lobby')} className="btn" style={{ padding: '8px' }}>
           <ArrowLeft size={20} />
@@ -236,7 +289,7 @@ export default function GameBot({ user }) {
           </div>
           <div>
             <div style={{ fontWeight: 'bold' }}>Robô Nível {difficulty}</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--accent-color)', height: '15px' }}>
+            <div style={{ fontSize: '0.8rem', color: 'var(--accent-color)', minHeight: '16px' }}>
               {isBotThinking ? 'Pensando...' : ''}
             </div>
           </div>
@@ -245,10 +298,6 @@ export default function GameBot({ user }) {
         <div style={{ padding: '4px 12px', borderRadius: '20px', background: game.turn() === 'w' ? 'white' : 'black', color: game.turn() === 'w' ? 'black' : 'white', fontWeight: 'bold', border: '2px solid var(--accent-color)' }}>
            Vez das {game.turn() === 'w' ? 'Brancas' : 'Pretas'}
         </div>
-      </div>
-
-      <div style={{ textAlign: 'center', color: '#fbbf24', fontSize: '12px', marginBottom: '8px', minHeight: '18px' }}>
-        {debugMsg}
       </div>
 
       <div style={{ width: '100%', aspectRatio: '1 / 1', marginBottom: '16px', boxShadow: 'var(--glass-shadow)', borderRadius: '4px', overflow: 'hidden' }}>
