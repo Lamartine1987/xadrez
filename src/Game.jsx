@@ -549,19 +549,16 @@ export default function Game({ user }) {
           <button onClick={() => setToastMsg('')} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={20} />
           </button>
-        </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', marginTop: '10px' }}>
-        <button onClick={() => navigate('/lobby')} className="btn" style={{ padding: '8px' }}>
-          <ArrowLeft size={20} />
-        </button>
-        
-        <div onClick={copyCode} className="glass-panel" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', borderRadius: '20px' }}>
-          <span style={{ fontWeight: 'bold', letterSpacing: '2px', color: 'var(--accent-color)' }}>{gameId}</span>
-          {copied ? <Check size={16} color="var(--success-color)" /> : <Copy size={16} />}
+      {gameData.status === 'waiting' && (
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px', marginTop: '10px' }}>
+          <div onClick={copyCode} className="glass-panel" style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', borderRadius: '20px' }}>
+            <span style={{ fontWeight: 'bold', letterSpacing: '2px', color: 'var(--accent-color)' }}>{gameId}</span>
+            {copied ? <Check size={16} color="var(--success-color)" /> : <Copy size={16} />}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="glass-panel" style={{ padding: '12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>

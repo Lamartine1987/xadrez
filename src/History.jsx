@@ -9,6 +9,10 @@ export default function History({ user }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
     const qGames = query(
       collection(db, 'games'), 
