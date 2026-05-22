@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from './firebase';
 import { collection, onSnapshot, query, where, addDoc, serverTimestamp, doc } from 'firebase/firestore';
-import { Users, Swords } from 'lucide-react';
+import { Users, Swords, PlayCircle } from 'lucide-react';
 
 export default function OnlinePlayers({ user }) {
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [sentChallengeId, setSentChallengeId] = useState(null);
+  const [myGames, setMyGames] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,12 +28,32 @@ export default function OnlinePlayers({ user }) {
       });
       // Sort by elo or displayName if needed
       setOnlineUsers(players);
+      });
+
+    // Inscrição nas partidas ativas
+    const qGames = query(
+      collection(db, 'games'), 
+      where('participantIds', 'array-contains', user.uid)
+    );
+    
+    const unsubGames = onSnapshot(qGames, (snapshot) => {
+      const games = [];
+      snapshot.forEach(doc => {
+        games.push({ id: doc.id, ...doc.data() });
+      });
+      games.sort((a, b) => {
+         const timeA = a.updatedAt?.toMillis() || a.createdAt?.toMillis() || 0;
+         const timeB = b.updatedAt?.toMillis() || b.createdAt?.toMillis() || 0;
+         return timeB - timeA;
+      });
+      setMyGames(games);
     });
 
-    return () => unsubUsers();
+    return () => {
+       unsubUsers();
+       unsubGames();
+    };
   }, [user]);
-
-  const [sentChallengeId, setSentChallengeId] = useState(null);
 
   useEffect(() => {
     if (!sentChallengeId) return;
@@ -77,6 +99,71 @@ export default function OnlinePlayers({ user }) {
          <Users size={28} color="var(--success-color)" />
          <h1 style={{ fontSize: '1.5rem', color: 'white' }}>Jogadores Online</h1>
       </div>
+
+      {myGames.length > 0 && (
+         <div style={{ width: '100%', maxWidth: '500px', marginBottom: '30px' }}>
+            <h2 style={{ fontSize: '1.1rem', color: 'var(--text-muted)', marginBottom: '15px' }}>Minhas Partidas Ativas</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+               {myGames.map(game => {
+                   const isWhite = game.players.white === user.uid;
+                   const opponentName = isWhite ? game.players.blackName : game.players.whiteName;
+                   
+                   let isMyTurn = false;
+                   if (game.status === 'playing') {
+                      const turnStr = game.fen.split(' ')[1];
+                      if ((isWhite && turnStr === 'w') || (!isWhite && turnStr === 'b')) {
+                         isMyTurn = true;
+                      }
+                   }
+
+                   let statusText = "Finalizada";
+                   let statusColor = "var(--text-muted)";
+                   
+                   if (game.status === 'waiting') {
+                      statusText = "Aguardando Oponente";
+                      statusColor = "var(--accent-color)";
+                   } else if (game.status === 'playing') {
+                      if (isMyTurn) {
+                         statusText = "Sua Vez!";
+                         statusColor = "var(--success-color)";
+                      } else {
+                         statusText = "Vez do Oponente";
+                         statusColor = "var(--text-muted)";
+                      }
+                   }
+
+                   return (
+                     <div 
+                        key={game.id} 
+                        onClick={() => navigate(`/game/${game.id}`)}
+                        style={{ 
+                          background: 'rgba(0,0,0,0.3)', 
+                          borderRadius: '8px', 
+                          padding: '12px 15px', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between',
+                          cursor: 'pointer',
+                          border: isMyTurn ? '1px solid var(--success-color)' : '1px solid var(--glass-border)',
+                          transition: 'all 0.2s'
+                        }}
+                        className="hover-glow"
+                     >
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                           <div style={{ fontWeight: 'bold', fontSize: '1rem' }}>{opponentName || 'Sem oponente'}</div>
+                           <div style={{ fontSize: '0.8rem', color: statusColor, fontWeight: isMyTurn ? 'bold' : 'normal', marginTop: '4px' }}>
+                              {statusText}
+                           </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                           <PlayCircle size={24} color={isMyTurn ? "var(--success-color)" : "var(--accent-color)"} />
+                        </div>
+                     </div>
+                   );
+               })}
+            </div>
+         </div>
+      )}
 
       <div className="glass-panel" style={{ width: '100%', maxWidth: '500px', padding: '20px' }}>
          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '300px' }}>
