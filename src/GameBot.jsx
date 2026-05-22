@@ -363,7 +363,7 @@ export default function GameBot({ user }) {
 
   if (difficulty === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '20px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', minHeight: '100vh', padding: '40px 20px 100px 20px' }}>
 
         <div className="glass-panel" style={{ textAlign: 'center', maxWidth: '400px', width: '100%' }}>
           <Bot size={48} color="var(--accent-color)" style={{ margin: '0 auto 20px' }} />
