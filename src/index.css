@@ -274,13 +274,13 @@ body {
   display: flex;
   flex-direction: column;
   width: 100%;
-  max-width: 800px;
+  max-width: min(800px, calc(100vh - 210px));
   margin: 0 auto;
 }
 
 @media (min-width: 900px) {
   .game-board-container {
-    max-width: calc(100vh - 220px);
+    max-width: calc(100vh - 170px);
   }
 }
 

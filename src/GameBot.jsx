@@ -6,6 +6,9 @@ import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { useBoardTheme } from './hooks/useBoardTheme';
 import { ArrowLeft, Bot, RefreshCw, X, Brain, Flag, Undo2, Trophy, Star } from 'lucide-react';
+import { initSounds, playSound } from './utils/sounds';
+import { calculateMaterialAdvantage } from './utils/chessLogic';
+import CapturedPieces from './components/CapturedPieces';
 
 export default function GameBot({ user }) {
   const navigate = useNavigate();
@@ -16,6 +19,8 @@ export default function GameBot({ user }) {
   const [gameOverData, setGameOverData] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
   const [optionSquares, setOptionSquares] = useState({});
+  const [moveFrom, setMoveFrom] = useState(null);
+  const [showOptions, setShowOptions] = useState(true);
   const { themeStyles } = useBoardTheme();
   const [coachMessage, setCoachMessage] = useState("Vamos começar! O Robô está pronto para a batalha.");
 
@@ -25,8 +30,11 @@ export default function GameBot({ user }) {
   const engineRef = useRef(null);
   const historyEndRef = useRef(null);
 
-  // Initialize Stockfish worker
+  // Initialize Stockfish worker and sounds
   useEffect(() => {
+    window.scrollTo(0, 0);
+    initSounds();
+    playSound('gameStart');
     let worker;
     const initEngine = async () => {
       try {
@@ -47,7 +55,16 @@ export default function GameBot({ user }) {
               
               setGame(g => {
                 const gameCopy = new Chess(g.fen());
-                gameCopy.move({ from, to, promotion });
+                const moveObj = gameCopy.move({ from, to, promotion });
+                if (moveObj) {
+                  if (moveObj.san.includes('+') || moveObj.san.includes('#')) {
+                    playSound('check');
+                  } else if (moveObj.flags.includes('c') || moveObj.flags.includes('e')) {
+                    playSound('capture');
+                  } else {
+                    playSound('move');
+                  }
+                }
                 if (gameCopy.inCheck()) {
                   setCoachMessage("Cuidado! Seu Rei está em xeque.");
                 } else if (gameCopy.isGameOver()) {
@@ -170,6 +187,10 @@ export default function GameBot({ user }) {
   };
 
   function getMoveOptions(square) {
+    if (!showOptions) {
+      setOptionSquares({});
+      return;
+    }
     const moves = game.moves({ square, verbose: true });
     if (moves.length === 0) {
       setOptionSquares({});
@@ -190,11 +211,54 @@ export default function GameBot({ user }) {
   }
 
   function onSquareClick(square) { 
-    if (game.turn() === 'w') getMoveOptions(square); 
+    if (game.turn() === 'b' || isBotThinking || gameOver) return;
+
+    // Se nenhum quadrado foi selecionado ainda
+    if (moveFrom === null) {
+      const pieceObj = game.get(square);
+      if (pieceObj && pieceObj.color === 'w') {
+        setMoveFrom(square);
+        getMoveOptions(square);
+      }
+      return;
+    }
+
+    // Se já tinha um quadrado selecionado, tenta fazer a jogada
+    const pieceObj = game.get(moveFrom);
+    if (!pieceObj) {
+      setMoveFrom(null);
+      return;
+    }
+    
+    // Constrói a string da peça como o react-chessboard usa ('wP', 'wN', etc)
+    const pieceStr = pieceObj.color + pieceObj.type.toUpperCase();
+    
+    // Tenta mover chamando a função onDrop que já tem todas as validações
+    const success = onDrop(moveFrom, square, pieceStr);
+    
+    // Se não foi um movimento válido (ex: clicou fora ou em movimento proibido)
+    if (!success) {
+       const clickedPiece = game.get(square);
+       // Se clicou em outra peça própria, muda a seleção
+       if (clickedPiece && clickedPiece.color === 'w') {
+          setMoveFrom(square);
+          getMoveOptions(square);
+       } else {
+          // Desmarca
+          setMoveFrom(null);
+          setOptionSquares({});
+       }
+    } else {
+       // Movimento de sucesso
+       setMoveFrom(null);
+    }
   }
 
   function onPieceDragBegin(piece, sourceSquare) { 
-    if (game.turn() === 'w') getMoveOptions(sourceSquare); 
+    if (game.turn() === 'w') {
+      setMoveFrom(sourceSquare);
+      getMoveOptions(sourceSquare);
+    }
   }
 
   const onDrop = (sourceSquare, targetSquare, piece) => {
@@ -277,6 +341,15 @@ export default function GameBot({ user }) {
       if (move === null) {
          return handleInvalidMove();
       }
+      
+      if (move.san.includes('+') || move.san.includes('#')) {
+        playSound('check');
+      } else if (move.flags.includes('c') || move.flags.includes('e')) {
+        playSound('capture');
+      } else {
+        playSound('move');
+      }
+      
       setGame(gameCopy);
       setCoachMessage("Boa jogada!");
       return true;
@@ -337,8 +410,10 @@ export default function GameBot({ user }) {
     setGameOverData(null);
   };
 
+  const material = calculateMaterialAdvantage(game);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', padding: '16px', paddingBottom: '100px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', padding: '8px', paddingBottom: '90px' }}>
       
       {/* Game Over Modal */}
       {gameOverData && (
@@ -392,7 +467,7 @@ export default function GameBot({ user }) {
         <div className="game-board-container">
           
           {/* Card Topo (Robô) */}
-          <div style={{ background: '#1e293b', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: '8px', borderTopRightRadius: '8px', borderBottom: '1px solid rgba(0,0,0,0.5)' }}>
+          <div style={{ background: '#1e293b', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: '8px', borderTopRightRadius: '8px', borderBottom: '1px solid rgba(0,0,0,0.5)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '40px', height: '40px', borderRadius: '4px', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Bot size={24} color="var(--danger-color)" />
@@ -404,8 +479,11 @@ export default function GameBot({ user }) {
                 </div>
               </div>
             </div>
-            <div style={{ padding: '4px 12px', borderRadius: '4px', background: game.turn() === 'b' ? 'var(--accent-color)' : 'rgba(255,255,255,0.1)', color: 'white', fontWeight: 'bold', fontSize: '0.8rem' }}>
-               Pretas
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+               <div style={{ padding: '4px 12px', borderRadius: '4px', background: game.turn() === 'b' ? 'var(--accent-color)' : 'rgba(255,255,255,0.1)', color: 'white', fontWeight: 'bold', fontSize: '0.8rem' }}>
+                  Pretas
+               </div>
+               <CapturedPieces captured={material.capturedByBlack} advantage={material.blackAdvantage} color="black" />
             </div>
           </div>
 
@@ -417,7 +495,13 @@ export default function GameBot({ user }) {
               onPieceDrop={onDrop}
               onPieceDragBegin={onPieceDragBegin}
               onSquareClick={onSquareClick}
-              customSquareStyles={optionSquares}
+              customSquareStyles={{
+                ...(game.history({ verbose: true }).length > 0 ? {
+                  [game.history({ verbose: true })[game.history({ verbose: true }).length - 1].from]: { background: 'rgba(255, 255, 0, 0.4)' },
+                  [game.history({ verbose: true })[game.history({ verbose: true }).length - 1].to]: { background: 'rgba(255, 255, 0, 0.4)' }
+                } : {}),
+                ...optionSquares
+              }}
               boardOrientation="white"
               {...themeStyles}
               animationDuration={300}
@@ -425,7 +509,7 @@ export default function GameBot({ user }) {
           </div>
 
           {/* Card Base (Jogador) */}
-          <div style={{ background: '#1e293b', padding: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ background: '#1e293b', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '40px', height: '40px', borderRadius: '4px', background: 'var(--accent-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
                 {user.displayName ? user.displayName[0].toUpperCase() : 'V'}
@@ -434,8 +518,11 @@ export default function GameBot({ user }) {
                 <div style={{ fontWeight: 'bold' }}>{user.displayName || user.email.split('@')[0]}</div>
               </div>
             </div>
-            <div style={{ padding: '4px 12px', borderRadius: '4px', background: game.turn() === 'w' ? 'white' : 'rgba(255,255,255,0.1)', color: game.turn() === 'w' ? 'black' : 'white', fontWeight: 'bold', fontSize: '0.8rem' }}>
-               Brancas
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+               <div style={{ padding: '4px 12px', borderRadius: '4px', background: game.turn() === 'w' ? 'white' : 'rgba(255,255,255,0.1)', color: game.turn() === 'w' ? 'black' : 'white', fontWeight: 'bold', fontSize: '0.8rem' }}>
+                  Brancas
+               </div>
+               <CapturedPieces captured={material.capturedByWhite} advantage={material.whiteAdvantage} color="white" />
             </div>
           </div>
         </div>
@@ -447,15 +534,33 @@ export default function GameBot({ user }) {
              <span>Jogar Com Bots</span>
           </div>
           
-          <div className="sidebar-content" style={{ padding: '20px', display: 'flex', alignItems: 'flex-start', gap: '15px', background: 'linear-gradient(180deg, #1e293b, #0f172a)' }}>
-             <div style={{ position: 'relative', width: '60px', height: '60px', background: 'var(--accent-color)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '2px solid rgba(255,255,255,0.2)', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
-                <Bot size={36} color="white" />
+          <div className="sidebar-content" style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '15px', background: 'linear-gradient(180deg, #1e293b, #0f172a)' }}>
+             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '15px', width: '100%' }}>
+               <div style={{ position: 'relative', width: '60px', height: '60px', background: 'var(--accent-color)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '2px solid rgba(255,255,255,0.2)', boxShadow: '0 4px 10px rgba(0,0,0,0.3)' }}>
+                  <Bot size={36} color="white" />
+               </div>
+               <div style={{ background: 'white', color: '#1e293b', padding: '12px 16px', borderRadius: '16px', borderTopLeftRadius: '4px', flex: 1, fontSize: '0.9rem', fontWeight: '500', position: 'relative', boxShadow: '0 4px 15px rgba(0,0,0,0.15)' }}>
+                  <div style={{ fontWeight: 'bold', marginBottom: '4px', color: 'var(--accent-color)' }}>Robô Nível {difficulty}</div>
+                  {coachMessage}
+                  <div style={{ position: 'absolute', left: '-8px', top: '20px', width: '0', height: '0', borderTop: '8px solid transparent', borderRight: '12px solid white', borderBottom: '8px solid transparent' }}></div>
+               </div>
              </div>
-             <div style={{ background: 'white', color: '#1e293b', padding: '12px 16px', borderRadius: '16px', borderTopLeftRadius: '4px', flex: 1, fontSize: '0.9rem', fontWeight: '500', position: 'relative', boxShadow: '0 4px 15px rgba(0,0,0,0.15)' }}>
-                <div style={{ fontWeight: 'bold', marginBottom: '4px', color: 'var(--accent-color)' }}>Robô Nível {difficulty}</div>
-                {coachMessage}
-                <div style={{ position: 'absolute', left: '-8px', top: '20px', width: '0', height: '0', borderTop: '8px solid transparent', borderRight: '12px solid white', borderBottom: '8px solid transparent' }}></div>
-             </div>
+             
+             {/* Toggle de Dicas */}
+             <div style={{ width: '100%', marginTop: '10px', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+               <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Mostrar Dicas de Movimento</span>
+               <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                 <input 
+                   type="checkbox" 
+                   checked={showOptions} 
+                   onChange={(e) => {
+                     setShowOptions(e.target.checked);
+                     if (!e.target.checked) setOptionSquares({});
+                   }}
+                   style={{ accentColor: 'var(--accent-color)', width: '18px', height: '18px' }}
+                 />
+               </label>
+            </div>
           </div>
 
           <div className="move-history-container" ref={historyEndRef}>
