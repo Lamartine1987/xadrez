@@ -7,7 +7,7 @@ export default function BottomNav() {
 
   const navItems = [
     { path: '/lobby', label: 'Início', icon: Home },
-    { path: '/online', label: 'Jogar', icon: Users },
+    { path: '/online', label: 'Online', icon: Users },
     { path: '/bot', label: 'Robô', icon: Bot },
     { path: '/tutorial', label: 'Aprender', icon: BookOpen },
     { path: '/ranking', label: 'Ranking', icon: Trophy },
