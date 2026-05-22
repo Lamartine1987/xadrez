@@ -111,10 +111,10 @@ export default function Game({ user }) {
 
         // Update local chess instance
         const newGame = new Chess();
-        if (data.fen !== 'start') {
-           try {
-              newGame.load(data.fen);
-           } catch(e) { console.error("Invalid FEN", e) }
+        if (data.pgn) {
+           try { newGame.loadPgn(data.pgn); } catch(e) { console.error(e) }
+        } else if (data.fen && data.fen !== 'start') {
+           try { newGame.load(data.fen); } catch(e) { console.error("Invalid FEN", e) }
         }
         setGame(newGame);
 
@@ -350,6 +350,7 @@ export default function Game({ user }) {
 
         let updateData = {
           fen: gameCopy.fen(),
+          pgn: gameCopy.pgn(),
           history: [...(gameData.history || []), move.san],
           updatedAt: serverTimestamp(),
           lastMoveAt: serverTimestamp()
@@ -490,8 +491,25 @@ export default function Game({ user }) {
   }
   const displayFen = analysisMode ? analysisGame.fen() : game.fen();
 
+  const getExpirationWarning = () => {
+    if (!gameData || gameData.timeControl > 0 || !gameData.createdAt || gameData.status !== 'playing') return null;
+    const createdMs = typeof gameData.createdAt.toMillis === 'function' ? gameData.createdAt.toMillis() : Date.now();
+    const daysPassed = Math.floor((Date.now() - createdMs) / (1000 * 60 * 60 * 24));
+    const daysLeft = 30 - daysPassed;
+    
+    if (daysLeft < 0) {
+       return <div style={{ background: 'var(--danger-color)', color: 'white', padding: '8px', borderRadius: '4px', textAlign: 'center', marginBottom: '16px', fontSize: '0.9rem', fontWeight: 'bold' }}>Sala expirada (prazo de 30 dias excedido).</div>;
+    } else if (daysLeft <= 3) {
+       return <div style={{ background: 'orange', color: 'white', padding: '8px', borderRadius: '4px', textAlign: 'center', marginBottom: '16px', fontSize: '0.9rem', fontWeight: 'bold' }}>Aviso: A sala expira em {daysLeft} dia(s).</div>;
+    } else {
+       return <div style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', padding: '6px', borderRadius: '4px', textAlign: 'center', marginBottom: '16px', fontSize: '0.8rem' }}>Partida Diária (Expira em {daysLeft} dias)</div>;
+    }
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', padding: '16px', maxWidth: '600px', margin: '0 auto', position: 'relative' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%', padding: '16px 16px 100px 16px', maxWidth: '600px', margin: '0 auto', position: 'relative' }}>
+      
+      {getExpirationWarning()}
       
       {/* Game Over Modal Premium */}
       {showGameOverModal && (
@@ -561,12 +579,14 @@ export default function Game({ user }) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-             <ChessClock 
-                timeMs={!amIWhite ? gameData.whiteTime : gameData.blackTime}
-                active={gameData.status === 'playing' && game.turn() === (!amIWhite ? 'w' : 'b')}
-                lastMoveAt={gameData.lastMoveAt}
-                onTimeUp={() => handleTimeUp(!amIWhite ? 'white' : 'black')}
-             />
+             {gameData.timeControl > 0 && (
+               <ChessClock 
+                  timeMs={!amIWhite ? gameData.whiteTime : gameData.blackTime}
+                  active={gameData.status === 'playing' && game.turn() === (!amIWhite ? 'w' : 'b')}
+                  lastMoveAt={gameData.lastMoveAt}
+                  onTimeUp={() => handleTimeUp(!amIWhite ? 'white' : 'black')}
+               />
+             )}
              <div style={{ padding: '2px 8px', borderRadius: '4px', background: !amIWhite ? 'white' : 'rgba(255,255,255,0.1)', color: !amIWhite ? 'black' : 'white', fontWeight: 'bold', fontSize: '0.7rem' }}>
                 {!amIWhite ? 'Brancas' : 'Pretas'}
              </div>
@@ -628,12 +648,14 @@ export default function Game({ user }) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <ChessClock 
-                 timeMs={amIWhite ? gameData.whiteTime : gameData.blackTime}
-                 active={gameData.status === 'playing' && game.turn() === (amIWhite ? 'w' : 'b')}
-                 lastMoveAt={gameData.lastMoveAt}
-                 onTimeUp={() => handleTimeUp(amIWhite ? 'white' : 'black')}
-              />
+              {gameData.timeControl > 0 && (
+                <ChessClock 
+                   timeMs={amIWhite ? gameData.whiteTime : gameData.blackTime}
+                   active={gameData.status === 'playing' && game.turn() === (amIWhite ? 'w' : 'b')}
+                   lastMoveAt={gameData.lastMoveAt}
+                   onTimeUp={() => handleTimeUp(amIWhite ? 'white' : 'black')}
+                />
+              )}
               <div style={{ padding: '2px 8px', borderRadius: '4px', background: amIWhite ? 'white' : 'rgba(255,255,255,0.1)', color: amIWhite ? 'black' : 'white', fontWeight: 'bold', fontSize: '0.7rem' }}>
                  {amIWhite ? 'Brancas' : 'Pretas'}
               </div>

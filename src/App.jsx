@@ -80,9 +80,9 @@ function AppLayout({ children, user }) {
         status: 'playing', 
         fen: 'start',
         history: [],
-        timeControl: 600, // Default 10 min
-        whiteTime: 600 * 1000,
-        blackTime: 600 * 1000,
+        timeControl: 0, // Daily (Sem Tempo)
+        whiteTime: 0,
+        blackTime: 0,
         lastMoveAt: serverTimestamp(),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
