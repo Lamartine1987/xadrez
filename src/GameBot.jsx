@@ -467,7 +467,7 @@ export default function GameBot({ user }) {
         <div className="game-board-container">
           
           {/* Card Topo (Robô) */}
-          <div style={{ background: '#1e293b', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTopLeftRadius: '8px', borderTopRightRadius: '8px', borderBottom: '1px solid rgba(0,0,0,0.5)' }}>
+          <div className="glass-panel" style={{ padding: '8px 12px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '40px', height: '40px', borderRadius: '4px', background: 'var(--bg-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Bot size={24} color="var(--danger-color)" />
@@ -488,7 +488,7 @@ export default function GameBot({ user }) {
           </div>
 
           {/* Tabuleiro */}
-          <div style={{ width: '100%', aspectRatio: '1 / 1', overflow: 'hidden', background: '#0f172a' }}>
+          <div style={{ width: '100%', aspectRatio: '1 / 1', overflow: 'hidden', marginBottom: '16px', boxShadow: 'var(--glass-shadow)', borderRadius: '4px' }}>
             <Chessboard 
               id="BotBoard" 
               position={game.fen()} 
@@ -509,7 +509,7 @@ export default function GameBot({ user }) {
           </div>
 
           {/* Card Base (Jogador) */}
-          <div style={{ background: '#1e293b', padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+          <div className="glass-panel" style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '40px', height: '40px', borderRadius: '4px', background: 'var(--accent-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold' }}>
                 {user.displayName ? user.displayName[0].toUpperCase() : 'V'}
