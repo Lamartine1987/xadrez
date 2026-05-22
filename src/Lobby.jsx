@@ -257,16 +257,10 @@ export default function Lobby({ user }) {
                 Desafiar Robô
               </button>
 
-              {/* Ranking */}
-              <button onClick={() => navigate('/ranking')} className="btn" style={{ background: 'var(--bg-color-lighter)', border: '1px solid var(--glass-border)', flexDirection: 'column', padding: '20px', gap: '10px', color: 'var(--text-main)', boxShadow: 'none' }}>
-                <Trophy size={32} color="#fbbf24" />
-                Ver Ranking
-              </button>
-
-              {/* Tutorial */}
-              <button onClick={() => navigate('/tutorial')} className="btn" style={{ background: 'var(--bg-color-lighter)', border: '1px solid var(--glass-border)', flexDirection: 'column', padding: '20px', gap: '10px', color: 'var(--text-main)', boxShadow: 'none' }}>
-                <BookOpen size={32} color="var(--accent-color)" />
-                Como Jogar
+              {/* Histórico */}
+              <button onClick={() => navigate('/history')} className="btn" style={{ background: 'var(--bg-color-lighter)', border: '1px solid var(--glass-border)', flexDirection: 'column', padding: '20px', gap: '10px', color: 'var(--text-main)', boxShadow: 'none' }}>
+                <Clock size={32} color="#fbbf24" />
+                Histórico
               </button>
               
               {/* AI Coach */}

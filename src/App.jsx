@@ -11,6 +11,7 @@ import Ranking from './Ranking';
 import Coach from './Coach';
 import Live from './Live';
 import OnlinePlayers from './OnlinePlayers';
+import History from './History';
 import BottomNav from './components/BottomNav';
 import './App.css';
 
@@ -211,6 +212,10 @@ function App() {
           <Route 
             path="/online" 
             element={user ? <OnlinePlayers user={user} /> : <Navigate to="/" />} 
+          />
+          <Route 
+            path="/history" 
+            element={user ? <History user={user} /> : <Navigate to="/" />} 
           />
         </Routes>
       </AppLayout>
