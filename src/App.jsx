@@ -36,7 +36,16 @@ function AppLayout({ children, user }) {
       updateDoc(userRef, { status: 'offline' });
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        updateDoc(userRef, { status: 'offline' }).catch(console.error);
+      } else {
+        updateDoc(userRef, { status: 'online', lastActive: serverTimestamp() }).catch(console.error);
+      }
+    };
+
     window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     // Listener de desafios recebidos
     const qChallenges = query(
@@ -56,6 +65,7 @@ function AppLayout({ children, user }) {
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       updateDoc(userRef, { status: 'offline' }).catch(console.error);
       unsubChallenges();
     };
