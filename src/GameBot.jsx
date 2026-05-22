@@ -364,9 +364,7 @@ export default function GameBot({ user }) {
   if (difficulty === 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '20px' }}>
-        <button onClick={() => navigate('/lobby')} className="btn" style={{ position: 'absolute', top: 20, left: 20, padding: '8px' }}>
-          <ArrowLeft size={20} />
-        </button>
+
         <div className="glass-panel" style={{ textAlign: 'center', maxWidth: '400px', width: '100%' }}>
           <Bot size={48} color="var(--accent-color)" style={{ margin: '0 auto 20px' }} />
           <h2 style={{ marginBottom: '20px' }}>Desafiar o Robô</h2>
