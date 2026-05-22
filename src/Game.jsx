@@ -549,6 +549,7 @@ export default function Game({ user }) {
           <button onClick={() => setToastMsg('')} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={20} />
           </button>
+        </div>
       )}
 
       {gameData.status === 'waiting' && (
