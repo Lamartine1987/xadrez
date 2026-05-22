@@ -43,7 +43,6 @@ export default function Lobby({ user }) {
       snapshot.forEach(doc => {
         games.push({ id: doc.id, ...doc.data() });
       });
-      // Ordenação local para não precisar de índice composto no Firestore
       games.sort((a, b) => {
          const timeA = a.updatedAt?.toMillis() || a.createdAt?.toMillis() || 0;
          const timeB = b.updatedAt?.toMillis() || b.createdAt?.toMillis() || 0;
@@ -191,13 +190,13 @@ export default function Lobby({ user }) {
         <div style={{ display: 'flex', borderBottom: '1px solid var(--glass-border)', marginBottom: '20px' }}>
            <button 
              onClick={() => setActiveTab('menu')}
-             style={{ flex: 1, padding: '15px', background: activeTab === 'menu' ? 'rgba(255,255,255,0.05)' : 'transparent', border: 'none', color: activeTab === 'menu' ? 'white' : 'var(--text-muted)', fontWeight: 'bold', cursor: 'pointer', borderBottom: activeTab === 'menu' ? '2px solid var(--accent-color)' : '2px solid transparent', transition: 'all 0.2s' }}
+             style={{ flex: 1, padding: '15px 5px', background: activeTab === 'menu' ? 'rgba(255,255,255,0.05)' : 'transparent', border: 'none', color: activeTab === 'menu' ? 'white' : 'var(--text-muted)', fontWeight: 'bold', cursor: 'pointer', borderBottom: activeTab === 'menu' ? '2px solid var(--accent-color)' : '2px solid transparent', transition: 'all 0.2s', fontSize: '0.9rem' }}
            >
-             Jogar
+             Menu
            </button>
            <button 
              onClick={() => setActiveTab('games')}
-             style={{ flex: 1, padding: '15px', background: activeTab === 'games' ? 'rgba(255,255,255,0.05)' : 'transparent', border: 'none', color: activeTab === 'games' ? 'white' : 'var(--text-muted)', fontWeight: 'bold', cursor: 'pointer', borderBottom: activeTab === 'games' ? '2px solid var(--accent-color)' : '2px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'all 0.2s' }}
+             style={{ flex: 1, padding: '15px 5px', background: activeTab === 'games' ? 'rgba(255,255,255,0.05)' : 'transparent', border: 'none', color: activeTab === 'games' ? 'white' : 'var(--text-muted)', fontWeight: 'bold', cursor: 'pointer', borderBottom: activeTab === 'games' ? '2px solid var(--accent-color)' : '2px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', transition: 'all 0.2s', fontSize: '0.9rem' }}
            >
              Partidas 
              {myGames.length > 0 && (
@@ -282,7 +281,7 @@ export default function Lobby({ user }) {
                 Aparência
               </button>
             </div>
-          ) : (
+          ) : activeTab === 'games' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '300px' }}>
               {myGames.length === 0 ? (
                 <div style={{ color: 'var(--text-muted)', padding: '40px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
@@ -359,7 +358,7 @@ export default function Lobby({ user }) {
                 })
               )}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 

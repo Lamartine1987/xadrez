@@ -305,7 +305,8 @@ export default function Game({ user }) {
 
   const executeMove = async (sourceSquare, targetSquare, promotion = 'q') => {
       setOptionSquares({});
-      const gameCopy = new Chess(game.fen());
+      const gameCopy = new Chess();
+      gameCopy.loadPgn(game.pgn());
       
       const handleInvalidMove = () => {
          const piece = gameCopy.get(sourceSquare);
@@ -429,7 +430,9 @@ export default function Game({ user }) {
        const p = premove;
        setPremove(null); 
        
-       const gameCopy = new Chess(game.fen());
+       const gameCopy = new Chess();
+       gameCopy.loadPgn(game.pgn());
+       
        const isPromotion = 
           gameCopy.get(p.from)?.type === 'p' && 
           ((playerColor === 'white' && p.to[1] === '8') || (playerColor === 'black' && p.to[1] === '1'));

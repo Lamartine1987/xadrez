@@ -841,7 +841,9 @@ export default function Tutorial({ user }) {
     setIsPlaying(true);
     
     let activeGame = lesson.startFen ? new Chess(lesson.startFen) : new Chess();
-    setGame(new Chess(activeGame.fen()));
+    const initialGame = new Chess();
+    initialGame.loadPgn(activeGame.pgn());
+    setGame(initialGame);
 
     for (let i = 0; i < lesson.moves.length; i++) {
       if (!isPlayingRef.current) break;
@@ -850,7 +852,9 @@ export default function Tutorial({ user }) {
       
       try {
         activeGame.move(lesson.moves[i]);
-        setGame(new Chess(activeGame.fen())); 
+        const stepGame = new Chess();
+        stepGame.loadPgn(activeGame.pgn());
+        setGame(stepGame); 
       } catch (e) {
         console.error("Erro no movimento:", e);
       }

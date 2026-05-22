@@ -54,7 +54,8 @@ export default function GameBot({ user }) {
               const promotion = move.length > 4 ? move[4] : undefined;
               
               setGame(g => {
-                const gameCopy = new Chess(g.fen());
+                const gameCopy = new Chess();
+                gameCopy.loadPgn(g.pgn());
                 const moveObj = gameCopy.move({ from, to, promotion });
                 if (moveObj) {
                   if (moveObj.san.includes('+') || moveObj.san.includes('#')) {
@@ -108,7 +109,8 @@ export default function GameBot({ user }) {
     if (engineRef.current === "random") {
       setTimeout(() => {
         setGame(g => {
-          const gameCopy = new Chess(g.fen());
+          const gameCopy = new Chess();
+          gameCopy.loadPgn(g.pgn());
           const moves = gameCopy.moves();
           if (moves.length > 0) {
             const randomMove = moves[Math.floor(Math.random() * moves.length)];
@@ -276,7 +278,8 @@ export default function GameBot({ user }) {
     }
 
     setOptionSquares({});
-    const gameCopy = new Chess(game.fen());
+    const gameCopy = new Chess();
+    gameCopy.loadPgn(game.pgn());
     
     const handleInvalidMove = () => {
          const piece = gameCopy.get(sourceSquare);
@@ -398,7 +401,8 @@ export default function GameBot({ user }) {
   const handleUndo = () => {
     if (gameOver) return;
     setGame(g => {
-       const gameCopy = new Chess(g.fen());
+       const gameCopy = new Chess();
+       gameCopy.loadPgn(g.pgn());
        gameCopy.undo(); // undo bot move
        gameCopy.undo(); // undo player move
        return gameCopy;
