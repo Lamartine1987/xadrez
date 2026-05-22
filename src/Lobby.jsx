@@ -359,7 +359,7 @@ export default function Lobby({ user }) {
       {/* Modal de Aparência */}
       {showSettings && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '400px', padding: '24px', position: 'relative' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '400px', maxHeight: '90vh', overflowY: 'auto', padding: '24px', position: 'relative' }}>
             <button onClick={() => setShowSettings(false)} style={{ position: 'absolute', top: '15px', right: '15px', background: 'transparent', border: 'none', color: 'white', cursor: 'pointer' }}>
               <X size={24} />
             </button>
