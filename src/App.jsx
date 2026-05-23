@@ -13,6 +13,7 @@ import Live from './Live';
 import OnlinePlayers from './OnlinePlayers';
 import History from './History';
 import BottomNav from './components/BottomNav';
+import LandingPage from './LandingPage';
 import './App.css';
 
 import { useNavigate } from 'react-router-dom';
@@ -179,6 +180,10 @@ function App() {
         <Routes>
           <Route 
             path="/" 
+            element={user ? <Navigate to="/lobby" /> : <LandingPage />} 
+          />
+          <Route 
+            path="/login" 
             element={user ? <Navigate to="/lobby" /> : <Login />} 
           />
           <Route 
