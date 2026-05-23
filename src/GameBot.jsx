@@ -168,22 +168,43 @@ export default function GameBot({ user }) {
 
     setGameOverData({ resultText, pointsChange, starsGained });
 
-    if ((pointsChange !== 0 || starsGained > 0) && user) {
+    if (user) {
       try {
-        const userRef = doc(db, 'users', user.uid);
-        const snap = await getDoc(userRef);
-        if (snap.exists()) {
-          const currentElo = snap.data().elo || 1200;
-          const currentGames = snap.data().gamesPlayed || 0;
-          const currentStars = snap.data().stars || 0;
-          await updateDoc(userRef, {
-            elo: currentElo + pointsChange,
-            stars: currentStars + starsGained,
-            gamesPlayed: currentGames + 1
-          });
+        if (pointsChange !== 0 || starsGained > 0) {
+          const userRef = doc(db, 'users', user.uid);
+          const snap = await getDoc(userRef);
+          if (snap.exists()) {
+            const currentElo = snap.data().elo || 1200;
+            const currentGames = snap.data().gamesPlayed || 0;
+            const currentStars = snap.data().stars || 0;
+            await updateDoc(userRef, {
+              elo: currentElo + pointsChange,
+              stars: currentStars + starsGained,
+              gamesPlayed: currentGames + 1
+            });
+          }
         }
+        
+        await addDoc(collection(db, 'games'), {
+          players: {
+            white: user.uid,
+            whiteName: user.displayName || user.email.split('@')[0],
+            whiteElo: null,
+            black: 'bot',
+            blackName: `Robô Nível ${difficulty}`,
+            blackElo: null
+          },
+          gameType: 'chess',
+          status: 'finished', 
+          fen: game.fen(),
+          history: game.history(),
+          timeControl: 0,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          participantIds: [user.uid]
+        });
       } catch (err) {
-        console.error("Erro ao atualizar pontos", err);
+        console.error("Erro ao atualizar pontos/histórico:", err);
       }
     }
   };

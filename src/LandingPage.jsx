@@ -1,6 +1,9 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Swords, Bot, Trophy, Users, Shield, Zap } from 'lucide-react';
 import { Chessboard } from 'react-chessboard';
+import CheckersBoard from './components/CheckersBoard';
+import { CheckersGame } from './utils/checkersLogic';
 
 const bgStyles = `
 @keyframes floatPiece {
@@ -36,6 +39,15 @@ const bgStyles = `
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [showChess, setShowChess] = useState(true);
+  const checkersInitialBoard = new CheckersGame().board;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShowChess(prev => !prev);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
 
   const features = [
     {
@@ -46,7 +58,7 @@ export default function LandingPage() {
     {
       icon: <Bot size={32} color="var(--accent-color)" />,
       title: "Desafie o Robô",
-      desc: "Treine contra nossa inteligência artificial com 5 níveis de dificuldade ajustáveis."
+      desc: "Treine contra nossa inteligência artificial com níveis de dificuldade ajustáveis."
     },
     {
       icon: <Trophy size={32} color="var(--accent-color)" />,
@@ -81,7 +93,7 @@ export default function LandingPage() {
       <header style={{ padding: '20px 5%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(15, 23, 42, 0.8)', backdropFilter: 'blur(10px)', borderBottom: '1px solid var(--glass-border)', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <Swords size={32} color="var(--accent-color)" />
-          <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--accent-color)', textShadow: '0 0 10px var(--accent-glow)' }}>Lama Chess</span>
+          <span style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--accent-color)', textShadow: '0 0 10px var(--accent-glow)' }}>Lama Games</span>
         </div>
         <div>
           <button className="btn" onClick={() => navigate('/login')}>
@@ -96,10 +108,10 @@ export default function LandingPage() {
           
           <div style={{ flex: '1 1 300px', textAlign: 'center', maxWidth: '600px' }}>
             <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', marginBottom: '20px', background: 'linear-gradient(to right, var(--accent-color), #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: '800' }}>
-              O seu novo portal para o mundo do xadrez
+              O seu novo portal de jogos de tabuleiro
             </h1>
             <p style={{ fontSize: 'clamp(1rem, 2vw, 1.2rem)', color: 'var(--text-muted)', marginBottom: '40px', lineHeight: '1.6' }}>
-              Jogue online, treine contra robôs, suba no ranking global e aprenda com análises de partidas. Tudo isso em uma interface moderna e intuitiva.
+              Jogue xadrez e damas online, treine contra robôs, suba no ranking global e divirta-se com seus amigos. Tudo isso em uma interface moderna e intuitiva.
             </p>
             <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <button className="btn" style={{ padding: '12px 20px', fontSize: '1rem', width: '100%', maxWidth: '320px', justifyContent: 'center', boxShadow: '0 0 20px rgba(99, 102, 241, 0.4)' }} onClick={() => navigate('/login')}>
@@ -110,14 +122,31 @@ export default function LandingPage() {
           </div>
 
           <div style={{ flex: '1 1 300px', maxWidth: '450px', width: '100%', perspective: '1000px', pointerEvents: 'none' }}>
-            <div style={{ transform: 'rotateX(15deg) rotateY(-15deg)', boxShadow: '20px 30px 60px rgba(0,0,0,0.6)', borderRadius: '8px', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.1)', background: 'var(--bg-color)' }}>
-              <Chessboard 
-                id="landingBoard" 
-                position="r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3" 
-                customDarkSquareStyle={{ backgroundColor: '#475569' }} 
-                customLightSquareStyle={{ backgroundColor: '#cbd5e1' }}
-                arePiecesDraggable={false}
-              />
+            <div style={{ transform: 'rotateX(15deg) rotateY(-15deg)', boxShadow: '20px 30px 60px rgba(0,0,0,0.6)', borderRadius: '8px', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.1)', background: 'var(--bg-color)', position: 'relative', aspectRatio: '1/1' }}>
+              
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: showChess ? 1 : 0, transition: 'opacity 1s ease' }}>
+                <Chessboard 
+                  id="landingBoardChess" 
+                  position="r1bqkbnr/pppp1ppp/2n5/1B2p3/4P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3" 
+                  customDarkSquareStyle={{ backgroundColor: '#475569' }} 
+                  customLightSquareStyle={{ backgroundColor: '#cbd5e1' }}
+                  arePiecesDraggable={false}
+                />
+              </div>
+
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: !showChess ? 1 : 0, transition: 'opacity 1s ease' }}>
+                <CheckersBoard 
+                  board={checkersInitialBoard}
+                  onMove={() => {}}
+                  playerColor="both"
+                  themeStyles={{
+                    customDarkSquareStyle: { backgroundColor: '#475569' },
+                    customLightSquareStyle: { backgroundColor: '#cbd5e1' }
+                  }}
+                  validMoves={[]}
+                />
+              </div>
+
             </div>
           </div>
           
@@ -141,9 +170,9 @@ export default function LandingPage() {
       <footer style={{ position: 'relative', zIndex: 1, padding: '30px', textAlign: 'center', borderTop: '1px solid var(--glass-border)', color: 'var(--text-muted)', background: 'rgba(0,0,0,0.2)' }}>
         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
           <Swords size={20} color="var(--accent-color)" />
-          <span style={{ fontWeight: 'bold', color: 'white' }}>Lama Chess</span>
+          <span style={{ fontWeight: 'bold', color: 'white' }}>Lama Games</span>
         </div>
-        <p style={{ fontSize: '0.9rem' }}>© {new Date().getFullYear()} Desenvolvido para amantes do xadrez.</p>
+        <p style={{ fontSize: '0.9rem' }}>© {new Date().getFullYear()} Desenvolvido para amantes de jogos de tabuleiro.</p>
       </footer>
     </div>
   );

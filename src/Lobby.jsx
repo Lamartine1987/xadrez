@@ -5,10 +5,11 @@ import { collection, doc, setDoc, getDoc, onSnapshot, query, where, serverTimest
 import { signOut } from 'firebase/auth';
 import { useBoardTheme } from './hooks/useBoardTheme';
 import { Chessboard } from 'react-chessboard';
-import { Plus, LogOut, ArrowRight, Bot, BookOpen, Trophy, Star, Brain, Palette, X, Clock, PlayCircle, Trash2 } from 'lucide-react';
+import { Plus, LogOut, ArrowRight, Bot, BookOpen, Trophy, Star, Brain, Palette, X, Clock, PlayCircle, Trash2, Settings, Edit3, Save } from 'lucide-react';
 
 export default function Lobby({ user }) {
   const [roomCode, setRoomCode] = useState('');
+  const [gameType, setGameType] = useState('chess');
   const [loading, setLoading] = useState(false);
   const [stars, setStars] = useState(0);
   const [elo, setElo] = useState(1200);
@@ -18,6 +19,12 @@ export default function Lobby({ user }) {
   const [timeControl, setTimeControl] = useState('0');
   const [gameToDelete, setGameToDelete] = useState(null);
   const [toastMsg, setToastMsg] = useState('');
+  
+  // Perfil do Usuário
+  const [showProfile, setShowProfile] = useState(false);
+  const [displayName, setDisplayName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
   const { themeId, setThemeId, pieceTheme, setPieceTheme, availableThemes, availablePieceThemes, themeStyles } = useBoardTheme();
   const navigate = useNavigate();
 
@@ -27,8 +34,11 @@ export default function Lobby({ user }) {
     // Inscrição dos pontos/estrelas do usuário
     const unsubUser = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
       if (docSnap.exists()) {
-        setStars(docSnap.data().stars || 0);
-        setElo(docSnap.data().elo || 1200);
+        const data = docSnap.data();
+        setStars(data.stars || 0);
+        setElo(data.elo || 1200);
+        setDisplayName(data.displayName || user.displayName || user.email.split('@')[0]);
+        setPhone(data.phone || '');
       }
     });
 
@@ -81,6 +91,7 @@ export default function Lobby({ user }) {
           blackName: null,
           blackElo: null
         },
+        gameType: gameType,
         status: 'waiting', 
         fen: 'start',
         history: [],
@@ -149,6 +160,24 @@ export default function Lobby({ user }) {
     signOut(auth);
   };
 
+  const handleSaveProfile = async (e) => {
+    e.preventDefault();
+    setSavingProfile(true);
+    try {
+      await setDoc(doc(db, 'users', user.uid), {
+        displayName,
+        phone
+      }, { merge: true });
+      setShowProfile(false);
+      showToast("Perfil atualizado!");
+    } catch (error) {
+      console.error("Erro ao salvar perfil:", error);
+      showToast("Erro ao salvar perfil.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', padding: '20px', position: 'relative' }}>
       
@@ -175,11 +204,52 @@ export default function Lobby({ user }) {
         </div>
       )}
 
+      {showProfile && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}>
+          <div className="glass-panel" style={{ background: '#1e293b', maxWidth: '400px', width: '100%', padding: '30px 20px', border: '1px solid var(--accent-color)', borderRadius: '12px' }}>
+            <h3 style={{ marginBottom: '20px', fontSize: '1.5rem', color: 'white', textAlign: 'center' }}>Editar Perfil</h3>
+            <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div>
+                <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '5px', fontSize: '0.9rem' }}>Nome Completo / Apelido</label>
+                <input 
+                  type="text" 
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="input-modern"
+                  required
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', color: 'var(--text-muted)', marginBottom: '5px', fontSize: '0.9rem' }}>Telefone (WhatsApp)</label>
+                <input 
+                  type="tel" 
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="input-modern"
+                />
+              </div>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button type="button" onClick={() => setShowProfile(false)} className="btn" style={{ flex: 1, background: 'transparent', border: '1px solid var(--glass-border)' }}>Cancelar</button>
+                <button type="submit" disabled={savingProfile} className="btn" style={{ flex: 1, background: 'var(--accent-color)', border: 'none', justifyContent: 'center' }}>
+                  {savingProfile ? 'Salvando...' : <><Save size={18} /> Salvar</>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', alignItems: 'center', gap: '15px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#fbbf24', fontWeight: 'bold' }} title="Suas Estrelas">
           <Star size={18} fill="#fbbf24" /> {stars}
         </div>
-        <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{user.displayName || user.email.split('@')[0]}</span>
+        <button onClick={() => setShowProfile(true)} className="btn" style={{ padding: '4px 10px', background: 'transparent', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '8px' }} title="Editar Perfil">
+          <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{displayName || 'Carregando...'}</span>
+          <Edit3 size={14} color="var(--accent-color)" />
+        </button>
+        <button onClick={() => navigate('/admin')} className="btn" style={{ padding: '8px', background: 'transparent', border: '1px solid var(--glass-border)' }} title="Configurações (Admin)">
+          <Settings size={16} />
+        </button>
         <button onClick={handleLogout} className="btn btn-danger" style={{ padding: '8px' }} title="Sair">
           <LogOut size={16} />
         </button>
@@ -208,6 +278,15 @@ export default function Lobby({ user }) {
         <div style={{ padding: '0 20px 20px 20px' }}>
           {activeTab === 'menu' ? (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+              {/* Game Selector */}
+              <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '10px', marginBottom: '5px' }}>
+                 <button onClick={() => setGameType('chess')} className="btn" style={{ flex: 1, background: gameType === 'chess' ? 'var(--accent-color)' : 'var(--bg-color-lighter)', border: 'none', justifyContent: 'center' }}>Xadrez</button>
+                 <button onClick={() => setGameType('checkers')} className="btn" style={{ flex: 1, background: gameType === 'checkers' ? 'var(--accent-color)' : 'var(--bg-color-lighter)', border: 'none', justifyContent: 'center', position: 'relative' }}>
+                    Damas
+                    <span style={{ position: 'absolute', top: '-5px', right: '-5px', background: 'var(--success-color)', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', padding: '2px 6px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>NOVO</span>
+                 </button>
+              </div>
+
               {/* Multiplayer */}
               <div style={{ gridColumn: '1 / -1', background: 'rgba(59, 130, 246, 0.1)', border: '1px solid var(--accent-glow)', padding: '20px', borderRadius: '12px' }}>
                 <h3 style={{ marginBottom: '15px', color: 'var(--accent-color)' }}>Jogar com Amigos</h3>
@@ -251,8 +330,14 @@ export default function Lobby({ user }) {
                 </form>
               </div>
 
+              {/* Tournaments */}
+              <button onClick={() => navigate('/tournaments')} className="btn hover-glow" style={{ gridColumn: '1 / -1', background: 'linear-gradient(45deg, rgba(251, 191, 36, 0.2), rgba(245, 158, 11, 0.2))', border: '1px solid #f59e0b', padding: '15px', gap: '10px', color: 'var(--text-main)', justifyContent: 'center' }}>
+                <Trophy size={24} color="#fcd34d" />
+                Torneios
+              </button>
+
               {/* Bot */}
-              <button onClick={() => navigate('/bot')} className="btn" style={{ background: 'var(--bg-color-lighter)', border: '1px solid var(--glass-border)', flexDirection: 'column', padding: '20px', gap: '10px', color: 'var(--text-main)', boxShadow: 'none' }}>
+              <button onClick={() => navigate(gameType === 'chess' ? '/bot' : '/bot/checkers')} className="btn" style={{ background: 'var(--bg-color-lighter)', border: '1px solid var(--glass-border)', flexDirection: 'column', padding: '20px', gap: '10px', color: 'var(--text-main)', boxShadow: 'none' }}>
                 <Bot size={32} color="var(--success-color)" />
                 Desafiar Robô
               </button>
@@ -264,14 +349,14 @@ export default function Lobby({ user }) {
               </button>
               
               {/* AI Coach */}
-              <button onClick={() => navigate('/coach')} className="btn" style={{ background: 'linear-gradient(45deg, rgba(139, 92, 246, 0.2), rgba(59, 130, 246, 0.2))', border: '1px solid #8b5cf6', padding: '15px', gap: '10px', color: 'var(--text-main)', justifyContent: 'center' }}>
-                <Brain size={24} color="#a78bfa" />
-                Meu Treinador IA
+              <button onClick={() => navigate('/coach')} className="btn" style={{ background: 'var(--bg-color-lighter)', border: '1px solid var(--glass-border)', flexDirection: 'column', padding: '20px', gap: '10px', color: 'var(--text-main)', boxShadow: 'none' }}>
+                <Brain size={32} color="#a78bfa" />
+                Treinador IA
               </button>
 
               {/* Aparência */}
-              <button onClick={() => setShowSettings(true)} className="btn" style={{ background: 'var(--bg-color-lighter)', border: '1px solid var(--glass-border)', padding: '15px', gap: '10px', color: 'var(--text-main)', justifyContent: 'center' }}>
-                <Palette size={24} color="#f472b6" />
+              <button onClick={() => setShowSettings(true)} className="btn" style={{ background: 'var(--bg-color-lighter)', border: '1px solid var(--glass-border)', flexDirection: 'column', padding: '20px', gap: '10px', color: 'var(--text-main)', boxShadow: 'none' }}>
+                <Palette size={32} color="#f472b6" />
                 Aparência
               </button>
             </div>

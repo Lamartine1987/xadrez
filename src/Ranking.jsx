@@ -44,7 +44,7 @@ export default function Ranking({ user: currentUser }) {
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
           <Trophy size={48} color="#fbbf24" style={{ margin: '0 auto 10px' }} />
           <h2 style={{ color: 'var(--text-main)', fontSize: '2rem', textShadow: '0 0 10px rgba(251, 191, 36, 0.5)' }}>Ranking</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Os melhores mestres do Neon Chess</p>
+          <p style={{ color: 'var(--text-muted)' }}>Os melhores mestres do Lama Games</p>
         </div>
 
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>

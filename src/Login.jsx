@@ -2,21 +2,28 @@ import { useState } from 'react';
 import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, provider, db } from './firebase';
-import { LogIn, UserPlus, Mail, Lock } from 'lucide-react';
+import { LogIn, UserPlus, Mail, Lock, Phone, User } from 'lucide-react';
 
 export default function Login() {
   const [isLoginMode, setIsLoginMode] = useState(true);
-  const [email, setEmail] = useState('');
+  const [emailOrPhone, setEmailOrPhone] = useState('');
   const [password, setPassword] = useState('');
+  
+  // New fields for registration
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  
   const [errorMsg, setErrorMsg] = useState('');
 
-  const initUser = async (user) => {
+  const initUser = async (user, additionalData = {}) => {
     const userRef = doc(db, 'users', user.uid);
     const snap = await getDoc(userRef);
     if (!snap.exists()) {
       await setDoc(userRef, {
-        displayName: user.displayName || user.email.split('@')[0],
+        displayName: additionalData.fullName || user.displayName || user.email.split('@')[0],
         email: user.email,
+        phone: additionalData.phone || '',
         elo: 1200,
         stars: 0,
         gamesPlayed: 0
@@ -35,23 +42,30 @@ export default function Login() {
     }
   };
 
-  const handleEmailAuth = async (e) => {
+  const handleAuth = async (e) => {
     e.preventDefault();
     setErrorMsg('');
     try {
       let res;
       if (isLoginMode) {
-        res = await signInWithEmailAndPassword(auth, email, password);
+        res = await signInWithEmailAndPassword(auth, emailOrPhone, password);
+        await initUser(res.user);
       } else {
+        if (!fullName || !phone || !email) {
+          setErrorMsg("Todos os campos são obrigatórios.");
+          return;
+        }
+        
+        const cleanPhone = phone.replace(/\D/g, '');
         res = await createUserWithEmailAndPassword(auth, email, password);
+        await initUser(res.user, { fullName, phone: cleanPhone });
       }
-      await initUser(res.user);
     } catch (error) {
-      console.error("Erro na autenticação por email", error);
+      console.error("Erro na autenticação", error);
       if (error.code === 'auth/email-already-in-use') {
-        setErrorMsg("Este email já está em uso.");
+        setErrorMsg("Este usuário (ou telefone) já está cadastrado.");
       } else if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-        setErrorMsg("Email ou senha incorretos.");
+        setErrorMsg("Credenciais incorretas.");
       } else if (error.code === 'auth/weak-password') {
         setErrorMsg("A senha deve ter pelo menos 6 caracteres.");
       } else {
@@ -61,29 +75,71 @@ export default function Login() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', width: '100%', padding: '20px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', width: '100%', padding: '20px' }}>
       <div className="glass-panel" style={{ width: '100%', maxWidth: '400px' }}>
         <h1 style={{ textAlign: 'center', marginBottom: '10px', fontSize: '2.5rem', color: 'var(--accent-color)', textShadow: '0 0 10px var(--accent-glow)' }}>
-          Lama Chess
+          Lama Games
         </h1>
         <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '30px' }}>
-          Jogue xadrez online com seus amigos em uma interface moderna.
+          Jogue xadrez e damas online com seus amigos em uma interface moderna.
         </p>
 
-        <form onSubmit={handleEmailAuth} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
-          <div style={{ position: 'relative' }}>
-            <Mail size={18} style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-            <input 
-              type="email" 
-              placeholder="Seu Email" 
-              className="input-modern" 
-              style={{ paddingLeft: '40px' }}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+        <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
           
+          {isLoginMode ? (
+            <div style={{ position: 'relative' }}>
+              <Mail size={18} style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <input 
+                type="email" 
+                placeholder="Seu Email" 
+                className="input-modern" 
+                style={{ paddingLeft: '40px' }}
+                value={emailOrPhone}
+                onChange={(e) => setEmailOrPhone(e.target.value)}
+                required
+              />
+            </div>
+          ) : (
+            <>
+              <div style={{ position: 'relative' }}>
+                <User size={18} style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input 
+                  type="text" 
+                  placeholder="Nome Completo" 
+                  className="input-modern" 
+                  style={{ paddingLeft: '40px' }}
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                />
+              </div>
+              <div style={{ position: 'relative' }}>
+                <Phone size={18} style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input 
+                  type="tel" 
+                  placeholder="Telefone (WhatsApp)" 
+                  className="input-modern" 
+                  style={{ paddingLeft: '40px' }}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                />
+              </div>
+              <div style={{ position: 'relative' }}>
+                <Mail size={18} style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <input 
+                  type="email" 
+                  placeholder="Seu Email" 
+                  className="input-modern" 
+                  style={{ paddingLeft: '40px' }}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </>
+          )}
+
           <div style={{ position: 'relative' }}>
             <Lock size={18} style={{ position: 'absolute', top: '50%', left: '12px', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input 
@@ -101,14 +157,17 @@ export default function Login() {
 
           <button type="submit" className="btn" style={{ width: '100%', justifyContent: 'center' }}>
             {isLoginMode ? <LogIn size={20} /> : <UserPlus size={20} />}
-            {isLoginMode ? "Entrar com Email" : "Criar Conta"}
+            {isLoginMode ? "Entrar" : "Criar Conta"}
           </button>
         </form>
 
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
           <button 
             type="button" 
-            onClick={() => setIsLoginMode(!isLoginMode)}
+            onClick={() => {
+              setIsLoginMode(!isLoginMode);
+              setErrorMsg('');
+            }}
             style={{ background: 'none', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', textDecoration: 'underline' }}
           >
             {isLoginMode ? "Não tem conta? Cadastre-se" : "Já tem conta? Faça Login"}

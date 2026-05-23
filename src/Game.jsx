@@ -23,8 +23,9 @@ export default function Game({ user }) {
   const { themeStyles } = useBoardTheme();
   const [copied, setCopied] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [showOptionsState, setShowOptions] = useState(true);
+  const showOptions = gameData?.tournamentId ? false : showOptionsState;
   const [moveFrom, setMoveFrom] = useState(null);
-  const [showOptions, setShowOptions] = useState(true);
   const [moveToPromote, setMoveToPromote] = useState(null);
   const [premove, setPremove] = useState(null);
   const [analysisMode, setAnalysisMode] = useState(false);
@@ -231,6 +232,103 @@ export default function Game({ user }) {
          } catch(e) { console.error("Erro ao atualizar Elo", e); }
       };
       updateRankings();
+    }
+  }, [isGameOverLocally, gameData, playerColor, gameId, gameOverWinner]);
+
+  // Atualizar Torneio no Firestore ao fim da partida
+  useEffect(() => {
+    if (isGameOverLocally && gameData && gameData.tournamentId && !gameData.tournamentUpdated) {
+       const updateTournament = async () => {
+          try {
+             const tournamentRef = doc(db, 'tournaments', gameData.tournamentId);
+             const gameRef = doc(db, 'games', gameId);
+             
+             await runTransaction(db, async (transaction) => {
+                const gameDoc = await transaction.get(gameRef);
+                if (gameDoc.data().tournamentUpdated) return;
+
+                const tDoc = await transaction.get(tournamentRef);
+                if (!tDoc.exists()) return;
+
+                let winnerUid = null;
+                if (gameOverWinner === 'white') winnerUid = gameData.players.white;
+                else if (gameOverWinner === 'black') winnerUid = gameData.players.black;
+                else winnerUid = 'draw';
+
+                const tData = tDoc.data();
+                if (!tData.matches) return;
+                
+                const matchesByRound = {};
+                let maxRound = 1;
+                tData.matches.forEach(m => {
+                   if (!matchesByRound[m.round]) matchesByRound[m.round] = [];
+                   matchesByRound[m.round].push(m);
+                   if (m.round > maxRound) maxRound = m.round;
+                });
+                
+                const newRounds = [];
+                for (let r = 1; r <= maxRound; r++) {
+                   newRounds.push(matchesByRound[r] || []);
+                }
+                for (let rIndex = 0; rIndex < newRounds.length; rIndex++) {
+                   const round = newRounds[rIndex];
+                   for (let mIndex = 0; mIndex < round.length; mIndex++) {
+                      if (round[mIndex].gameId === gameId) {
+                         newRounds[rIndex][mIndex].status = 'finished';
+                         newRounds[rIndex][mIndex].winner = winnerUid;
+                         
+                         if (tData.format === 'knockout' && rIndex + 1 < newRounds.length) {
+                            const nextMatchIndex = Math.floor(mIndex / 2);
+                            const isP1 = mIndex % 2 === 0;
+                            const nextMatch = newRounds[rIndex + 1][nextMatchIndex];
+                            
+                            const winnerPlayerObj = winnerUid === gameData.players.white ? 
+                               {uid: gameData.players.white, name: gameData.players.whiteName} : 
+                               (winnerUid === gameData.players.black ? {uid: gameData.players.black, name: gameData.players.blackName} : {uid: 'draw', name: 'Empate'});
+                               
+                            if (isP1) {
+                               nextMatch.p1 = winnerPlayerObj;
+                            } else {
+                               nextMatch.p2 = winnerPlayerObj;
+                            }
+                            
+                            if (nextMatch.p1?.uid && nextMatch.p2?.uid && nextMatch.p1.uid !== 'draw' && nextMatch.p2.uid !== 'draw') {
+                               nextMatch.status = 'ready';
+                               const nextGameRef = doc(db, 'games', nextMatch.gameId);
+                               transaction.update(nextGameRef, {
+                                  'players.white': nextMatch.p1.uid,
+                                  'players.whiteName': nextMatch.p1.name,
+                                  'players.black': nextMatch.p2.uid,
+                                  'players.blackName': nextMatch.p2.name,
+                                  status: 'playing',
+                                  participantIds: [nextMatch.p1.uid, nextMatch.p2.uid]
+                               });
+                            }
+                         }
+                      }
+                   }
+                }
+                
+                let isTournamentFinished = false;
+                if (tData.format === 'knockout') {
+                   const lastRound = newRounds[newRounds.length - 1];
+                   if (lastRound[0] && lastRound[0].status === 'finished') {
+                      isTournamentFinished = true;
+                   }
+                } else {
+                   const allFinished = newRounds.flat().every(m => m.status === 'finished');
+                   if (allFinished) isTournamentFinished = true;
+                }
+
+                transaction.update(tournamentRef, {
+                   matches: newRounds.flat(),
+                   status: isTournamentFinished ? 'finished' : tData.status
+                });
+                transaction.update(gameRef, { tournamentUpdated: true });
+             });
+          } catch(e) { console.error("Erro ao atualizar torneio", e); }
+       };
+       updateTournament();
     }
   }, [isGameOverLocally, gameData, playerColor, gameId, gameOverWinner]);
 
@@ -660,11 +758,15 @@ export default function Game({ user }) {
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', width: '100%', justifyContent: 'flex-end', marginTop: '4px' }}>
-           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Dicas</span>
-           <input type="checkbox" checked={showOptions} onChange={(e) => {
-              setShowOptions(e.target.checked);
-              if (!e.target.checked) setOptionSquares({});
-           }} style={{ accentColor: 'var(--accent-color)' }} />
+           {!gameData?.tournamentId && (
+             <>
+               <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Dicas</span>
+               <input type="checkbox" checked={showOptionsState} onChange={(e) => {
+                  setShowOptions(e.target.checked);
+                  if (!e.target.checked) setOptionSquares({});
+               }} style={{ accentColor: 'var(--accent-color)' }} />
+             </>
+           )}
         </div>
       </div>
 

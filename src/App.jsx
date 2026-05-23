@@ -4,14 +4,18 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from './firebase';
 import Login from './Login';
 import Lobby from './Lobby';
-import Game from './Game';
+import GameWrapper from './GameWrapper';
 import GameBot from './GameBot';
+import GameBotCheckers from './GameBotCheckers';
 import Tutorial from './Tutorial';
 import Ranking from './Ranking';
 import Coach from './Coach';
 import Live from './Live';
 import OnlinePlayers from './OnlinePlayers';
 import History from './History';
+import Tournaments from './Tournaments';
+import TournamentDetails from './TournamentDetails';
+import AdminSettings from './AdminSettings';
 import BottomNav from './components/BottomNav';
 import LandingPage from './LandingPage';
 import './App.css';
@@ -192,11 +196,15 @@ function App() {
           />
           <Route 
             path="/game/:gameId" 
-            element={user ? <Game user={user} /> : <Navigate to="/" />} 
+            element={user ? <GameWrapper user={user} /> : <Navigate to="/" />} 
           />
           <Route 
             path="/bot" 
             element={user ? <GameBot user={user} /> : <Navigate to="/" />} 
+          />
+          <Route 
+            path="/bot/checkers" 
+            element={user ? <GameBotCheckers user={user} /> : <Navigate to="/" />} 
           />
           <Route 
             path="/tutorial" 
@@ -221,6 +229,18 @@ function App() {
           <Route 
             path="/history" 
             element={user ? <History user={user} /> : <Navigate to="/" />} 
+          />
+          <Route 
+            path="/tournaments" 
+            element={user ? <Tournaments user={user} /> : <Navigate to="/" />} 
+          />
+          <Route 
+            path="/tournament/:id" 
+            element={user ? <TournamentDetails user={user} /> : <Navigate to="/" />} 
+          />
+          <Route 
+            path="/admin" 
+            element={user ? <AdminSettings user={user} /> : <Navigate to="/" />} 
           />
         </Routes>
       </AppLayout>
