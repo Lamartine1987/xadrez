@@ -94,22 +94,22 @@ export default function LandingPage() {
       <main style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 20px', textAlign: 'center', width: '100%' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: '60px', maxWidth: '1200px', width: '100%', marginBottom: '80px', animation: 'fadeIn 1s ease-in-out' }}>
           
-          <div style={{ flex: '1 1 400px', textAlign: 'left', maxWidth: '600px' }}>
+          <div style={{ flex: '1 1 300px', textAlign: 'center', maxWidth: '600px' }}>
             <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', marginBottom: '20px', background: 'linear-gradient(to right, var(--accent-color), #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: '800' }}>
               O seu novo portal para o mundo do xadrez
             </h1>
             <p style={{ fontSize: 'clamp(1rem, 2vw, 1.2rem)', color: 'var(--text-muted)', marginBottom: '40px', lineHeight: '1.6' }}>
               Jogue online, treine contra robôs, suba no ranking global e aprenda com análises de partidas. Tudo isso em uma interface moderna e intuitiva.
             </p>
-            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-              <button className="btn" style={{ padding: '15px 40px', fontSize: '1.2rem', boxShadow: '0 0 20px rgba(99, 102, 241, 0.4)' }} onClick={() => navigate('/login')}>
-                <Zap size={24} style={{ marginRight: '10px' }} />
-                Começar a Jogar Gratuitamente
+            <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button className="btn" style={{ padding: '12px 20px', fontSize: '1rem', width: '100%', maxWidth: '320px', justifyContent: 'center', boxShadow: '0 0 20px rgba(99, 102, 241, 0.4)' }} onClick={() => navigate('/login')}>
+                <Zap size={20} style={{ marginRight: '8px', flexShrink: 0 }} />
+                <span>Começar a Jogar Grátis</span>
               </button>
             </div>
           </div>
 
-          <div style={{ flex: '1 1 400px', maxWidth: '450px', width: '100%', perspective: '1000px', pointerEvents: 'none' }}>
+          <div style={{ flex: '1 1 300px', maxWidth: '450px', width: '100%', perspective: '1000px', pointerEvents: 'none' }}>
             <div style={{ transform: 'rotateX(15deg) rotateY(-15deg)', boxShadow: '20px 30px 60px rgba(0,0,0,0.6)', borderRadius: '8px', overflow: 'hidden', border: '2px solid rgba(255,255,255,0.1)', background: 'var(--bg-color)' }}>
               <Chessboard 
                 id="landingBoard" 
