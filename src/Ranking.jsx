@@ -3,7 +3,7 @@ import { db } from './firebase';
 import { collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 import { Trophy, Medal, Star } from 'lucide-react';
 
-export default function Ranking() {
+export default function Ranking({ user: currentUser }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('elo'); // 'elo' or 'stars'
@@ -92,7 +92,9 @@ export default function Ranking() {
                 </div>
 
                 <div style={{ flex: 1, fontWeight: 'bold', color: 'var(--text-main)' }}>
-                  {user.displayName}
+                  {user.displayName === 'Ana Letícia Carvalho' ? (
+                    currentUser && (currentUser.displayName === 'Ana Letícia Carvalho' || currentUser.displayName?.toLowerCase().includes('lamartine')) ? 'Ana Letícia Carvalho' : '...'
+                  ) : user.displayName}
                 </div>
 
                 <div style={{ textAlign: 'right' }}>

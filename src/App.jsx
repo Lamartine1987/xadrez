@@ -199,7 +199,7 @@ function App() {
           />
           <Route 
             path="/ranking" 
-            element={user ? <Ranking /> : <Navigate to="/" />} 
+            element={user ? <Ranking user={user} /> : <Navigate to="/" />} 
           />
           <Route 
             path="/coach" 

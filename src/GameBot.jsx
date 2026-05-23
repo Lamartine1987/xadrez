@@ -319,6 +319,7 @@ export default function GameBot({ user }) {
                    msg = "Movimento inválido. O Rei anda apenas 1 casa por vez e nunca para uma casa que esteja sendo atacada.";
                }
             }
+         }
          if (piece) {
             addDoc(collection(db, 'mistakes'), {
                userId: user.uid,
