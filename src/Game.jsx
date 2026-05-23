@@ -312,16 +312,14 @@ export default function Game({ user }) {
          const piece = gameCopy.get(sourceSquare);
          let msg = "Lance inválido!";
          if (piece) {
-            try {
-               addDoc(collection(db, 'mistakes'), {
-                  userId: user.uid,
-                  piece: piece.type,
-                  details: msg,
-                  timestamp: serverTimestamp()
-               });
-            } catch (err) {
+            addDoc(collection(db, 'mistakes'), {
+               userId: user.uid,
+               piece: piece.type,
+               details: msg,
+               timestamp: serverTimestamp()
+            }).catch(err => {
                console.error("Erro ao gravar erro", err);
-            }
+            });
          }
          showToast(msg);
          return false;

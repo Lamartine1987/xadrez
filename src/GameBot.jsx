@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from './firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Chess } from 'chess.js';
 import { Chessboard } from 'react-chessboard';
 import { useBoardTheme } from './hooks/useBoardTheme';
@@ -319,17 +319,15 @@ export default function GameBot({ user }) {
                    msg = "Movimento inválido. O Rei anda apenas 1 casa por vez e nunca para uma casa que esteja sendo atacada.";
                }
             }
-            try {
-               addDoc(collection(db, 'mistakes'), {
-                  userId: user.uid,
-                  piece: piece.type,
-                  errorType: "invalid_move",
-                  message: msg,
-                  timestamp: serverTimestamp()
-               });
-            } catch (err) {
+         if (piece) {
+            addDoc(collection(db, 'mistakes'), {
+               userId: user.uid,
+               piece: piece.type,
+               details: msg,
+               timestamp: serverTimestamp()
+            }).catch(err => {
                console.error("Erro ao gravar erro", err);
-            }
+            });
          }
          setCoachMessage(msg); // Treinador narra o erro
          return false;
