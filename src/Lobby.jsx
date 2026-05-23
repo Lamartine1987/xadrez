@@ -250,11 +250,9 @@ export default function Lobby({ user }) {
           </button>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {isAdmin && (
-            <button onClick={() => navigate('/admin')} className="btn" style={{ padding: '8px', background: 'rgba(255,255,255,0.1)', border: 'none' }} title="Configurações (Admin)">
-              <Settings size={18} color="white" />
-            </button>
-          )}
+          <button onClick={() => navigate('/admin')} className="btn" style={{ padding: '8px', background: 'rgba(255,255,255,0.1)', border: 'none' }} title="Configurações (Admin)">
+            <Settings size={18} color="white" />
+          </button>
           <button onClick={handleLogout} className="btn" style={{ padding: '8px 12px', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', color: '#fca5a5', display: 'flex', gap: '5px' }} title="Sair">
             <LogOut size={16} /> <span className="hide-mobile">Sair</span>
           </button>
