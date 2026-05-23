@@ -239,21 +239,27 @@ export default function Lobby({ user }) {
         </div>
       )}
 
-      <div style={{ position: 'absolute', top: 20, right: 20, display: 'flex', alignItems: 'center', gap: '15px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#fbbf24', fontWeight: 'bold' }} title="Suas Estrelas">
-          <Star size={18} fill="#fbbf24" /> {stars}
+      <header style={{ width: '100%', maxWidth: '500px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#fbbf24', fontWeight: 'bold', background: 'rgba(251, 191, 36, 0.1)', padding: '5px 10px', borderRadius: '20px' }} title="Suas Estrelas">
+            <Star size={16} fill="#fbbf24" /> {stars}
+          </div>
+          <button onClick={() => setShowProfile(true)} className="btn" style={{ padding: '4px 10px', background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '5px', overflow: 'hidden' }} title="Editar Perfil">
+            <span style={{ fontSize: '0.9rem', color: 'white', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px' }}>{displayName || 'Carregando...'}</span>
+            <Edit3 size={14} color="var(--accent-color)" style={{ flexShrink: 0 }} />
+          </button>
         </div>
-        <button onClick={() => setShowProfile(true)} className="btn" style={{ padding: '4px 10px', background: 'transparent', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: '8px' }} title="Editar Perfil">
-          <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{displayName || 'Carregando...'}</span>
-          <Edit3 size={14} color="var(--accent-color)" />
-        </button>
-        <button onClick={() => navigate('/admin')} className="btn" style={{ padding: '8px', background: 'transparent', border: '1px solid var(--glass-border)' }} title="Configurações (Admin)">
-          <Settings size={16} />
-        </button>
-        <button onClick={handleLogout} className="btn btn-danger" style={{ padding: '8px' }} title="Sair">
-          <LogOut size={16} />
-        </button>
-      </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {isAdmin && (
+            <button onClick={() => navigate('/admin')} className="btn" style={{ padding: '8px', background: 'rgba(255,255,255,0.1)', border: 'none' }} title="Configurações (Admin)">
+              <Settings size={18} color="white" />
+            </button>
+          )}
+          <button onClick={handleLogout} className="btn" style={{ padding: '8px 12px', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', color: '#fca5a5', display: 'flex', gap: '5px' }} title="Sair">
+            <LogOut size={16} /> <span className="hide-mobile">Sair</span>
+          </button>
+        </div>
+      </header>
 
       <div className="glass-panel" style={{ width: '100%', maxWidth: '500px', textAlign: 'center', padding: '0', overflow: 'hidden' }}>
         
