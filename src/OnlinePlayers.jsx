@@ -47,7 +47,10 @@ export default function OnlinePlayers({ user }) {
     const unsubGames = onSnapshot(qGames, (snapshot) => {
       const games = [];
       snapshot.forEach(doc => {
-        games.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        if (data.status === 'playing' || data.status === 'waiting') {
+           games.push({ id: doc.id, ...data });
+        }
       });
       games.sort((a, b) => {
          const timeA = a.updatedAt?.toMillis() || a.createdAt?.toMillis() || 0;
