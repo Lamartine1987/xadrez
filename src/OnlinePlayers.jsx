@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from './firebase';
-import { collection, onSnapshot, query, where, addDoc, serverTimestamp, doc } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, addDoc, serverTimestamp, doc, deleteDoc } from 'firebase/firestore';
 import { Users, Swords, PlayCircle, X } from 'lucide-react';
 
 export default function OnlinePlayers({ user }) {
@@ -82,6 +82,17 @@ export default function OnlinePlayers({ user }) {
 
     return () => unsub();
   }, [sentChallengeId, navigate]);
+
+  const cancelChallenge = async () => {
+    if (!sentChallengeId) return;
+    try {
+      await deleteDoc(doc(db, 'challenges', sentChallengeId));
+      setSentChallengeId(null);
+      setSentChallengeTargetId(null);
+    } catch (err) {
+      console.error("Erro ao cancelar desafio:", err);
+    }
+  };
 
   const confirmChallenge = async () => {
     if (!selectedOpponent) return;
@@ -230,11 +241,26 @@ export default function OnlinePlayers({ user }) {
                      </div>
                      <button 
                         className="btn"
-                        onClick={() => setSelectedOpponent(player)}
-                        disabled={sentChallengeId !== null}
-                        style={{ padding: '8px 12px', fontSize: '0.85rem', opacity: (sentChallengeId !== null && sentChallengeTargetId !== player.id) ? 0.5 : 1 }}
+                        onClick={() => {
+                           if (sentChallengeTargetId === player.id) {
+                              cancelChallenge();
+                           } else {
+                              setSelectedOpponent(player);
+                           }
+                        }}
+                        disabled={sentChallengeId !== null && sentChallengeTargetId !== player.id}
+                        style={{ 
+                           padding: '8px 12px', 
+                           fontSize: '0.85rem', 
+                           opacity: (sentChallengeId !== null && sentChallengeTargetId !== player.id) ? 0.5 : 1,
+                           background: sentChallengeTargetId === player.id ? 'var(--danger-color)' : ''
+                        }}
                      >
-                        <Swords size={16} /> {sentChallengeTargetId === player.id ? "Aguardando..." : "Desafiar"}
+                        {sentChallengeTargetId === player.id ? (
+                           <><X size={16} /> Cancelar</>
+                        ) : (
+                           <><Swords size={16} /> Desafiar</>
+                        )}
                      </button>
                   </div>
                 );

@@ -87,7 +87,7 @@ Lembre-se: A saída deve ser ÚNICA E EXCLUSIVAMENTE o objeto JSON válido, sem 
 // ==========================================
 
 // Função para solicitar a criação da instância do WhatsApp via API
-exports.createWhatsappInstance = onCall({ region: "us-central1", cors: [/vercel\\.app$/, /localhost/] }, async (request) => {
+exports.createWhatsappInstance = onCall({ region: "us-central1", cors: true }, async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Acesso negado.');
 
   try {
@@ -104,7 +104,7 @@ exports.createWhatsappInstance = onCall({ region: "us-central1", cors: [/vercel\
 });
 
 // Função para buscar o status atual (e QR Code se estiver desconectado)
-exports.getWhatsappStatus = onCall({ region: "us-central1", cors: [/vercel\\.app$/, /localhost/] }, async (request) => {
+exports.getWhatsappStatus = onCall({ region: "us-central1", cors: true }, async (request) => {
   if (!request.auth) throw new HttpsError('unauthenticated', 'Acesso negado.');
 
   try {
