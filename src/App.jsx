@@ -56,17 +56,17 @@ function AppLayout({ children, user }) {
     // Listener de desafios recebidos
     const qChallenges = query(
       collection(db, 'challenges'),
-      where('to', '==', user.uid),
-      where('status', '==', 'pending')
+      where('to', '==', user.uid)
     );
 
     const unsubChallenges = onSnapshot(qChallenges, (snapshot) => {
-      if (!snapshot.empty) {
-        // Pega o primeiro desafio pendente
-        setIncomingChallenge({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
-      } else {
-        setIncomingChallenge(null);
-      }
+      let pendingChallenge = null;
+      snapshot.forEach(doc => {
+         if (doc.data().status === 'pending') {
+            pendingChallenge = { id: doc.id, ...doc.data() };
+         }
+      });
+      setIncomingChallenge(pendingChallenge);
     });
 
     return () => {
@@ -84,7 +84,10 @@ function AppLayout({ children, user }) {
       const code = Math.random().toString(36).substring(2, 6).toUpperCase();
       const gameRef = doc(collection(db, 'games'), code);
       
-      await setDoc(gameRef, {
+      const gameType = incomingChallenge.gameType || 'chess';
+      const timeControl = incomingChallenge.timeControl || 0;
+      
+      const baseGameData = {
         players: {
           white: incomingChallenge.from,
           whiteName: incomingChallenge.fromName,
@@ -93,17 +96,29 @@ function AppLayout({ children, user }) {
           blackName: user.displayName || user.email.split('@')[0],
           blackElo: 1200
         },
-        status: 'playing', 
-        fen: 'start',
-        history: [],
-        timeControl: 0, // Daily (Sem Tempo)
-        whiteTime: 0,
-        blackTime: 0,
+        status: 'playing',
+        gameType: gameType,
+        timeControl: timeControl,
+        whiteTime: timeControl * 60 * 1000,
+        blackTime: timeControl * 60 * 1000,
         lastMoveAt: serverTimestamp(),
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
-        participantIds: [incomingChallenge.from, user.uid]
-      });
+        participantIds: [incomingChallenge.from, user.uid],
+        isChallenge: true
+      };
+
+      if (gameType === 'checkers') {
+         // Create default checkers state
+         const { CheckersGame } = await import('./utils/checkersLogic');
+         const newCheckers = new CheckersGame();
+         baseGameData.checkersState = JSON.stringify(newCheckers.getState());
+      } else {
+         baseGameData.fen = 'start';
+         baseGameData.history = [];
+      }
+
+      await setDoc(gameRef, baseGameData);
 
       // Atualizar o desafio como aceito
       await updateDoc(doc(db, 'challenges', incomingChallenge.id), {

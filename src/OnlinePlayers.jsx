@@ -2,12 +2,15 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { db } from './firebase';
 import { collection, onSnapshot, query, where, addDoc, serverTimestamp, doc } from 'firebase/firestore';
-import { Users, Swords, PlayCircle } from 'lucide-react';
+import { Users, Swords, PlayCircle, X } from 'lucide-react';
 
 export default function OnlinePlayers({ user }) {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [sentChallengeId, setSentChallengeId] = useState(null);
   const [sentChallengeTargetId, setSentChallengeTargetId] = useState(null);
+  const [selectedOpponent, setSelectedOpponent] = useState(null);
+  const [gameType, setGameType] = useState('chess');
+  const [timeControl, setTimeControl] = useState('0');
   const [myGames, setMyGames] = useState([]);
   const navigate = useNavigate();
 
@@ -80,23 +83,28 @@ export default function OnlinePlayers({ user }) {
     return () => unsub();
   }, [sentChallengeId, navigate]);
 
-  const handleChallenge = async (opponent) => {
+  const confirmChallenge = async () => {
+    if (!selectedOpponent) return;
     try {
-      setSentChallengeTargetId(opponent.id);
+      setSentChallengeTargetId(selectedOpponent.id);
       const docRef = await addDoc(collection(db, 'challenges'), {
         from: user.uid,
         fromName: user.displayName || user.email.split('@')[0],
         fromElo: user.elo || 1200,
-        to: opponent.id,
-        toName: opponent.displayName || opponent.email.split('@')[0],
+        to: selectedOpponent.id,
+        toName: selectedOpponent.displayName || selectedOpponent.email.split('@')[0],
         status: 'pending',
+        gameType: gameType,
+        timeControl: parseInt(timeControl),
         createdAt: serverTimestamp()
       });
       setSentChallengeId(docRef.id);
+      setSelectedOpponent(null);
     } catch (error) {
       console.error("Erro ao enviar desafio", error);
       alert("Erro ao enviar desafio.");
       setSentChallengeTargetId(null);
+      setSelectedOpponent(null);
     }
   };
 
@@ -118,9 +126,22 @@ export default function OnlinePlayers({ user }) {
                    
                    let isMyTurn = false;
                    if (game.status === 'playing') {
-                      const turnStr = game.fen.split(' ')[1];
-                      if ((isWhite && turnStr === 'w') || (!isWhite && turnStr === 'b')) {
-                         isMyTurn = true;
+                      if (game.gameType === 'checkers') {
+                         if (game.checkersState) {
+                            try {
+                               const stateObj = typeof game.checkersState === 'string' ? JSON.parse(game.checkersState) : game.checkersState;
+                               if ((isWhite && stateObj.turn === 'w') || (!isWhite && stateObj.turn === 'b')) {
+                                  isMyTurn = true;
+                               }
+                            } catch(e) {}
+                         }
+                      } else {
+                         if (game.fen) {
+                            const turnStr = game.fen.split(' ')[1] || 'w';
+                            if ((isWhite && turnStr === 'w') || (!isWhite && turnStr === 'b')) {
+                               isMyTurn = true;
+                            }
+                         }
                       }
                    }
 
@@ -209,7 +230,7 @@ export default function OnlinePlayers({ user }) {
                      </div>
                      <button 
                         className="btn"
-                        onClick={() => handleChallenge(player)}
+                        onClick={() => setSelectedOpponent(player)}
                         disabled={sentChallengeId !== null}
                         style={{ padding: '8px 12px', fontSize: '0.85rem', opacity: (sentChallengeId !== null && sentChallengeTargetId !== player.id) ? 0.5 : 1 }}
                      >
@@ -221,6 +242,41 @@ export default function OnlinePlayers({ user }) {
            )}
          </div>
       </div>
+
+      {selectedOpponent && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div className="glass-panel" style={{ width: '100%', maxWidth: '350px', padding: '24px', textAlign: 'center', border: '1px solid var(--accent-color)' }}>
+            <h2 style={{ marginBottom: '20px', fontSize: '1.2rem', color: 'white' }}>Desafiar {selectedOpponent.displayName || selectedOpponent.email?.split('@')[0]}</h2>
+            
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
+               <button onClick={() => setGameType('chess')} className="btn" style={{ flex: 1, background: gameType === 'chess' ? 'var(--accent-color)' : 'var(--bg-color-lighter)', border: 'none' }}>Xadrez</button>
+               <button onClick={() => setGameType('checkers')} className="btn" style={{ flex: 1, background: gameType === 'checkers' ? 'var(--accent-color)' : 'var(--bg-color-lighter)', border: 'none' }}>Damas</button>
+            </div>
+
+            <select 
+               value={timeControl} 
+               onChange={(e) => setTimeControl(e.target.value)}
+               className="input-modern"
+               style={{ width: '100%', marginBottom: '20px', cursor: 'pointer' }}
+            >
+               <option value="0">Sem Tempo (Correspondência)</option>
+               <option value="3">3 minutos</option>
+               <option value="5">5 minutos</option>
+               <option value="10">10 minutos</option>
+            </select>
+
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setSelectedOpponent(null)} className="btn" style={{ flex: 1, background: 'transparent', border: '1px solid var(--glass-border)' }}>
+                 Cancelar
+              </button>
+              <button onClick={confirmChallenge} className="btn" style={{ flex: 1, background: 'var(--success-color)', border: 'none' }}>
+                <Swords size={18} /> Enviar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

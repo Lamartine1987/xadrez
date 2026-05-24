@@ -24,7 +24,7 @@ export default function Game({ user }) {
   const [copied, setCopied] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   const [showOptionsState, setShowOptions] = useState(true);
-  const showOptions = gameData?.tournamentId ? false : showOptionsState;
+  const showOptions = (gameData?.tournamentId || gameData?.isChallenge) ? false : showOptionsState;
   const [moveFrom, setMoveFrom] = useState(null);
   const [moveToPromote, setMoveToPromote] = useState(null);
   const [premove, setPremove] = useState(null);

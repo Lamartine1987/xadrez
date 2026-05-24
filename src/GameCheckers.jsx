@@ -455,7 +455,7 @@ export default function GameCheckers({ user }) {
            validMoves={validMoves}
            turn={game.turn}
            lastMove={lastMove}
-           showOptions={!gameData?.tournamentId}
+           showOptions={!(gameData?.tournamentId || gameData?.isChallenge)}
          />
       </div>
 
