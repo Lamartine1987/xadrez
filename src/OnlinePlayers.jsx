@@ -7,6 +7,7 @@ import { Users, Swords, PlayCircle } from 'lucide-react';
 export default function OnlinePlayers({ user }) {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [sentChallengeId, setSentChallengeId] = useState(null);
+  const [sentChallengeTargetId, setSentChallengeTargetId] = useState(null);
   const [myGames, setMyGames] = useState([]);
   const navigate = useNavigate();
 
@@ -72,6 +73,7 @@ export default function OnlinePlayers({ user }) {
         // Desafio foi recusado (documento deletado)
         alert("O jogador recusou o seu desafio.");
         setSentChallengeId(null);
+        setSentChallengeTargetId(null);
       }
     });
 
@@ -80,6 +82,7 @@ export default function OnlinePlayers({ user }) {
 
   const handleChallenge = async (opponent) => {
     try {
+      setSentChallengeTargetId(opponent.id);
       const docRef = await addDoc(collection(db, 'challenges'), {
         from: user.uid,
         fromName: user.displayName || user.email.split('@')[0],
@@ -93,6 +96,7 @@ export default function OnlinePlayers({ user }) {
     } catch (error) {
       console.error("Erro ao enviar desafio", error);
       alert("Erro ao enviar desafio.");
+      setSentChallengeTargetId(null);
     }
   };
 
@@ -207,9 +211,9 @@ export default function OnlinePlayers({ user }) {
                         className="btn"
                         onClick={() => handleChallenge(player)}
                         disabled={sentChallengeId !== null}
-                        style={{ padding: '8px 12px', fontSize: '0.85rem', opacity: sentChallengeId ? 0.5 : 1 }}
+                        style={{ padding: '8px 12px', fontSize: '0.85rem', opacity: (sentChallengeId !== null && sentChallengeTargetId !== player.id) ? 0.5 : 1 }}
                      >
-                        <Swords size={16} /> {sentChallengeId ? "Aguardando..." : "Desafiar"}
+                        <Swords size={16} /> {sentChallengeTargetId === player.id ? "Aguardando..." : "Desafiar"}
                      </button>
                   </div>
                 );
