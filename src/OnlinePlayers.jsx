@@ -277,9 +277,11 @@ export default function OnlinePlayers({ user }) {
           <div className="glass-panel" style={{ width: '100%', maxWidth: '350px', padding: '24px', textAlign: 'center', border: '1px solid var(--accent-color)' }}>
             <h2 style={{ marginBottom: '20px', fontSize: '1.2rem', color: 'white' }}>Desafiar {selectedOpponent.displayName || selectedOpponent.email?.split('@')[0]}</h2>
             
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-               <button onClick={() => setGameType('chess')} className="btn" style={{ flex: 1, background: gameType === 'chess' ? 'var(--accent-color)' : 'var(--bg-color-lighter)', border: 'none' }}>Xadrez</button>
-               <button onClick={() => setGameType('checkers')} className="btn" style={{ flex: 1, background: gameType === 'checkers' ? 'var(--accent-color)' : 'var(--bg-color-lighter)', border: 'none' }}>Damas</button>
+            <div style={{ display: 'flex', gap: '5px', marginBottom: '15px', flexWrap: 'wrap' }}>
+               <button onClick={() => setGameType('chess')} className="btn" style={{ flex: '1 1 45%', background: gameType === 'chess' ? 'var(--accent-color)' : 'var(--bg-color-lighter)', border: 'none', padding: '8px 5px', fontSize: '0.85rem', justifyContent: 'center' }}>Xadrez</button>
+               <button onClick={() => setGameType('checkers')} className="btn" style={{ flex: '1 1 45%', background: gameType === 'checkers' ? 'var(--accent-color)' : 'var(--bg-color-lighter)', border: 'none', padding: '8px 5px', fontSize: '0.85rem', justifyContent: 'center' }}>Damas</button>
+               <button onClick={() => setGameType('dominoes')} className="btn" style={{ flex: '1 1 45%', background: gameType === 'dominoes' ? 'var(--accent-color)' : 'var(--bg-color-lighter)', border: 'none', padding: '8px 5px', fontSize: '0.85rem', justifyContent: 'center' }}>Dominó</button>
+               <button onClick={() => setGameType('sudoku')} className="btn" style={{ flex: '1 1 45%', background: gameType === 'sudoku' ? 'var(--accent-color)' : 'var(--bg-color-lighter)', border: 'none', padding: '8px 5px', fontSize: '0.85rem', justifyContent: 'center' }}>Sudoku</button>
             </div>
 
             <select 

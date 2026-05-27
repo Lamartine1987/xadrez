@@ -284,10 +284,16 @@ export default function Lobby({ user }) {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
               {/* Game Selector */}
               <div style={{ gridColumn: '1 / -1', display: 'flex', gap: '10px', marginBottom: '5px' }}>
-                 <button onClick={() => setGameType('chess')} className="btn" style={{ flex: 1, background: gameType === 'chess' ? 'var(--accent-color)' : 'var(--bg-color-lighter)', border: 'none', justifyContent: 'center' }}>Xadrez</button>
-                 <button onClick={() => setGameType('checkers')} className="btn" style={{ flex: 1, background: gameType === 'checkers' ? 'var(--accent-color)' : 'var(--bg-color-lighter)', border: 'none', justifyContent: 'center', position: 'relative' }}>
+                 <button onClick={() => setGameType('chess')} className="btn" style={{ flex: 1, background: gameType === 'chess' ? 'var(--accent-color)' : 'var(--bg-color-lighter)', border: 'none', justifyContent: 'center', padding: '8px 5px', fontSize: '0.85rem' }}>Xadrez</button>
+                 <button onClick={() => setGameType('checkers')} className="btn" style={{ flex: 1, background: gameType === 'checkers' ? 'var(--accent-color)' : 'var(--bg-color-lighter)', border: 'none', justifyContent: 'center', padding: '8px 5px', fontSize: '0.85rem' }}>
                     Damas
-                    <span style={{ position: 'absolute', top: '-5px', right: '-5px', background: 'var(--success-color)', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', padding: '2px 6px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>NOVO</span>
+                 </button>
+                 <button onClick={() => setGameType('dominoes')} className="btn" style={{ flex: 1, background: gameType === 'dominoes' ? 'var(--accent-color)' : 'var(--bg-color-lighter)', border: 'none', justifyContent: 'center', position: 'relative', padding: '8px 5px', fontSize: '0.85rem' }}>
+                    Dominó
+                 </button>
+                 <button onClick={() => setGameType('sudoku')} className="btn" style={{ flex: 1, background: gameType === 'sudoku' ? 'var(--accent-color)' : 'var(--bg-color-lighter)', border: 'none', justifyContent: 'center', position: 'relative', padding: '8px 5px', fontSize: '0.85rem' }}>
+                    Sudoku
+                    <span style={{ position: 'absolute', top: '-5px', right: '-5px', background: 'var(--success-color)', color: 'white', fontSize: '0.65rem', fontWeight: 'bold', padding: '2px 4px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>NOVO</span>
                  </button>
               </div>
 
@@ -341,9 +347,9 @@ export default function Lobby({ user }) {
               </button>
 
               {/* Bot */}
-              <button onClick={() => navigate(gameType === 'chess' ? '/bot' : '/bot/checkers')} className="btn" style={{ background: 'var(--bg-color-lighter)', border: '1px solid var(--glass-border)', flexDirection: 'column', padding: '20px', gap: '10px', color: 'var(--text-main)', boxShadow: 'none' }}>
+              <button onClick={() => navigate(gameType === 'chess' ? '/bot' : gameType === 'checkers' ? '/bot/checkers' : gameType === 'dominoes' ? '/bot/dominoes' : '/solo/sudoku')} className="btn" style={{ background: 'var(--bg-color-lighter)', border: '1px solid var(--glass-border)', flexDirection: 'column', padding: '20px', gap: '10px', color: 'var(--text-main)', boxShadow: 'none' }}>
                 <Bot size={32} color="var(--success-color)" />
-                Desafiar Robô
+                {gameType === 'sudoku' ? 'Desafio Solo' : 'Desafiar Robô'}
               </button>
 
               {/* Histórico */}

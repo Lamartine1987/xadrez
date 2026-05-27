@@ -4,6 +4,8 @@ import { db } from './firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import Game from './Game';
 import GameCheckers from './GameCheckers';
+import GameDominoes from './GameDominoes';
+import GameSudoku from './GameSudoku';
 
 export default function GameWrapper({ user }) {
   const { gameId } = useParams();
@@ -29,6 +31,14 @@ export default function GameWrapper({ user }) {
 
   if (gameType === 'checkers') {
     return <GameCheckers user={user} />;
+  }
+
+  if (gameType === 'dominoes') {
+    return <GameDominoes user={user} />;
+  }
+
+  if (gameType === 'sudoku') {
+    return <GameSudoku user={user} />;
   }
 
   return <Game user={user} />;

@@ -7,6 +7,8 @@ import Lobby from './Lobby';
 import GameWrapper from './GameWrapper';
 import GameBot from './GameBot';
 import GameBotCheckers from './GameBotCheckers';
+import GameBotDominoes from './GameBotDominoes';
+import GameSudokuSolo from './GameSudokuSolo';
 import Tutorial from './Tutorial';
 import Ranking from './Ranking';
 import Coach from './Coach';
@@ -113,6 +115,14 @@ function AppLayout({ children, user }) {
          const { CheckersGame } = await import('./utils/checkersLogic');
          const newCheckers = new CheckersGame();
          baseGameData.checkersState = JSON.stringify(newCheckers.getState());
+      } else if (gameType === 'dominoes') {
+         const { DominoesGame } = await import('./utils/dominoesLogic');
+         const newDominoes = new DominoesGame();
+         baseGameData.dominoesState = JSON.stringify(newDominoes.getState());
+      } else if (gameType === 'sudoku') {
+         const { SudokuGame } = await import('./utils/sudokuLogic');
+         const newSudoku = new SudokuGame(1);
+         baseGameData.sudokuState = JSON.stringify(newSudoku.getState());
       } else {
          baseGameData.fen = 'start';
          baseGameData.history = [];
@@ -220,6 +230,14 @@ function App() {
           <Route 
             path="/bot/checkers" 
             element={user ? <GameBotCheckers user={user} /> : <Navigate to="/" />} 
+          />
+          <Route 
+            path="/bot/dominoes" 
+            element={user ? <GameBotDominoes user={user} /> : <Navigate to="/" />} 
+          />
+          <Route 
+            path="/solo/sudoku" 
+            element={user ? <GameSudokuSolo user={user} /> : <Navigate to="/" />} 
           />
           <Route 
             path="/tutorial" 
